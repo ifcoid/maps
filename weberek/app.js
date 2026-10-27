@@ -9,7 +9,8 @@ const MAP_ID = "map";
 // Data terenkripsi: nama berkas di bundel -> nama sumber di state.data.
 const SECURE_URL = "../data/secure/weberek.bin";
 const SECURE_SOURCES = {
-    "weberek-masterplan-rev14": "masterplan", "weberek-itc": "itc", "weberek-itc-design": "design"
+    "weberek-masterplan-rev14": "masterplan", "weberek-itc": "itc", "weberek-itc-design": "design",
+    "weberek-dwg-overlays": "dwg"
 };
 const PASSWORD_KEY = "weberek-maps-password";
 const BASEMAPS = {
@@ -83,6 +84,13 @@ const LAYERS = [
       match: f => f.properties.kind === "itc-cam",
       style: f => ({ radius: 4.5, fill: CAM_COLORS[f.properties.cam], stroke: "#0f172a", strokeWidth: 1.5 }),
       swatch: "#ef4444", dot: true },
+    { key: "cellblocks", label: "Cell blocks: plan, 20 cameras, fields of view", note: "typical plan on 5 blocks · ITC-VSS-002 DWG", source: "dwg",
+      match: f => f.properties.kind.startsWith("cb-") || f.properties.kind === "itc-cam",
+      style: f => cellBlockStyle(f), swatch: "#facc15" },
+    { key: "notes", label: "Drawing annotations", note: "labels of the sheet chosen below · site overlay DWG", source: "dwg",
+      match: f => f.properties.sheet === state.sheet,
+      style: { stroke: "#fef08a", strokeWidth: 1.2, strokeOpacity: 0.9 }, swatch: "#fef08a",
+      tag: f => f.properties.kind === "dwg-note" ? f.properties.text : null, tagClass: "dwg-note" },
     { key: "radio", label: "Radio repeaters, DAS head-end, sleeves", note: "DMR on T5 + control room · 3 retaining-wall sleeves", source: "design",
       match: f => ["itc-radio", "itc-das-he", "itc-sleeve"].includes(f.properties.kind),
       style: f => POINT_STYLES[f.properties.kind], swatch: "#34d399", dot: true },
@@ -112,11 +120,19 @@ const POINT_STYLES = {
     "mp-water": { radius: 5, fill: "#0ea5e9", stroke: "#fff", strokeWidth: 2 }
 };
 
-// Warna kamera mengikuti legenda lembar ITC-VSS-001.
+// Warna kamera mengikuti legenda lembar ITC-VSS-001 (kamera blok: ITC-VSS-002).
 const CAM_COLORS = {
     wall: "#ef4444", f2: "#f97316", ptz: "#3b82f6", thermal: "#d946ef",
-    gate: "#fca5a5", anpr: "#fb923c", site: "#22c55e"
+    gate: "#fca5a5", anpr: "#fb923c", site: "#22c55e", block: "#facc15"
 };
+
+// Denah blok sel dari DWG: garis tipis terang di citra satelit, gelap di peta jalan.
+function cellBlockStyle(feature) {
+    const kind = feature.properties.kind;
+    if (kind === "itc-cam") return { radius: 4, fill: CAM_COLORS.block, stroke: "#0f172a", strokeWidth: 1.5 };
+    if (kind === "cb-fov") return { stroke: "#facc15", strokeWidth: 1, fill: "#facc15", fillOpacity: 0.28 };
+    return { stroke: state.basemap === "satellite" ? "#f8fafc" : "#334155", strokeWidth: 0.7, strokeOpacity: 0.85 };
+}
 
 const DAS_STYLES = {
     "itc-das": { stroke: "#a855f7", strokeWidth: 1.5, fill: "#a855f7", fillOpacity: 0.4 },
@@ -145,7 +161,7 @@ function layoutStyle(feature) {
     return { stroke: light ? "#e2e8f0" : "#64748b", strokeWidth: 0.8, strokeOpacity: 0.75 };
 }
 
-const state = { basemap: "satellite", visible: new Set(LAYERS.filter(l => !l.off).map(l => l.key)), data: {}, view: null };
+const state = { sheet: "", basemap: "satellite", visible: new Set(LAYERS.filter(l => !l.off).map(l => l.key)), data: {}, view: null };
 
 function km(m) {
     return (m / 1000).toFixed(1);
@@ -290,10 +306,10 @@ function drawLayers() {
                 const text = layer.tag(f);
                 if (!text) return;
                 const tag = document.createElement("div");
-                tag.className = f.geometry.type === "Point" ? "itc-tag" : "itc-tag zone";
+                tag.className = layer.tagClass || (f.geometry.type === "Point" ? "itc-tag" : "itc-tag zone");
                 tag.textContent = text;
                 labelMarkers.push(addMarker(MAP_ID, anchorOf(f.geometry), {
-                    element: tag, anchor: f.geometry.type === "Point" ? "bottom" : "center",
+                    element: tag, anchor: layer.tagClass || f.geometry.type !== "Point" ? "center" : "bottom",
                     title: f.properties.label || f.properties.name, popup: popupContent(f)
                 }));
             });
@@ -373,6 +389,12 @@ function bindUI() {
                 b.setAttribute("aria-pressed", String(b === button)));
             build();
         });
+    });
+    document.getElementById("sheetNotes").addEventListener("change", event => {
+        state.sheet = event.target.value;
+        state.visible.add("notes");
+        renderLegend();
+        drawLayers();
     });
     document.querySelectorAll("[data-fit]").forEach(button =>
         button.addEventListener("click", () => fitTo(button.dataset.fit)));

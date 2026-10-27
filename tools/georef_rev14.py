@@ -73,6 +73,12 @@ def cad_to_lonlat(x, y):
     return round(LON0 + e / KX, 7), round(LAT0 + n / KY, 7)
 
 
+def lonlat_to_cad(lon, lat):
+    """Kebalikan cad_to_lonlat: (lon, lat) WGS84 -> titik grid CAD (m)."""
+    e, n = (lon - LON0) * KX - _TX, (lat - LAT0) * KY - _TY
+    return _C * e + _S * n, -_S * e + _C * n
+
+
 def residuals():
     out = {}
     for key, (geo, cad) in CONTROL.items():

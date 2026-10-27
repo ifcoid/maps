@@ -31,6 +31,17 @@
           <button type="button" data-fit="compound" class="secure-only">Compound</button>
         </div>
       </div>
+      <label class="sheet-select secure-only">Drawing annotations
+        <select id="sheetNotes">
+          <option value="">None</option>
+          <option value="GEN-002">ITC-GEN-002 Site key plan</option>
+          <option value="GEN-003">ITC-GEN-003 Security zoning</option>
+          <option value="NET-002">ITC-NET-002 Fiber backbone</option>
+          <option value="VSS-001">ITC-VSS-001 Cameras, site</option>
+          <option value="PID-001">ITC-PID-001 Perimeter detection</option>
+          <option value="COM-002">ITC-COM-002 BTS &amp; DAS</option>
+        </select>
+      </label>
       <button type="button" class="unlock" id="unlockButton">Unlock site layout &amp; ITC design layers</button>
 
       <ul class="legend" id="legend"></ul>
@@ -45,8 +56,10 @@
           <li>Master Plan Rev.14 is drawn on a local survey grid (BM1–BM3) with no geodetic tie, and every geographic coordinate in the Inception Report comes from Google Earth. The plan is placed by a rigid best fit (scale 1, rotation −2.66°) to the P1–P4 corners and the existing building: position accuracy ±50&nbsp;m. Checks: the Rev.14 main gate falls 9&nbsp;m from where the access road reaches the site, and all CPT/GRS field points fall inside the 25&nbsp;ha parcel.</li>
           <li>The P1–P4 corners (18&nbsp;ha) do not match the Rev.14 parcel (25&nbsp;ha) in shape; Rev.14 governs. Proposal: one GNSS session on BM1–BM3 to tie the survey grid to WGS84/UTM&nbsp;51S and remove the ±50&nbsp;m uncertainty.</li>
           <li>ITC design layers (fiber ring, spurs, cameras, wall detection zones, security grades, DAS zones, radio) come from the ITC drawing set Rev.B of the Interim Design Rev.1 (sheets ITC-GEN-002/003, NET-002, VSS-001, PID-001, COM-002), built from the same CAD coordinates. Positions are provisional until the D-4 detailed design and carry the ±50&nbsp;m placement of the plan.</li>
-          <li>The map shows the 66 site and perimeter cameras. The other cameras of the 144 are inside buildings (cell blocks ITC-VSS-002; hub, isolation, support buildings and head office ITC-VSS-003). Tower PTZ and thermal symbols are offset from their tower for legibility, as on the sheet.</li>
+          <li>The map shows the 66 site and perimeter cameras and the 20 cell-block cameras. The remaining cameras of the 144 (hub, isolation, support buildings, head office) are allocated per building on the schematic sheet ITC-VSS-003, which has no plan coordinates. Tower PTZ and thermal symbols are offset from their tower for legibility, as on the sheet.</li>
           <li>Security grades and DAS zones are off by default: tick them in the legend.</li>
+          <li>Cell blocks: the typical Cell Block A–E plan and its 4 cameras (ITC-CELLBLOCK-OVERLAY.dwg, sheet ITC-VSS-002) are placed on each of the five MP no.&nbsp;8 roofs (same 40.5&nbsp;×&nbsp;17.0&nbsp;m outline), with the sally-port end at the entrance canopy. Left/right handedness is indicative, and block letters A–E are not given on the Master Plan.</li>
+          <li>Drawing annotations reproduce the labels and leaders of the six A3 site sheets from ITC-SITE-OVERLAY-REV14.dwg.</li>
         </ul>
       </details>
     </div>

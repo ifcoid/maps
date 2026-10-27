@@ -36,6 +36,7 @@ tools/build_weberek_data.py  koridor, situs, listrik: OSM + koordinat Inception 
 tools/georef_rev14.py      transformasi grid CAD Rev.14 -> WGS84 (titik kontrol + bukti)
 tools/build_masterplan.py  DXF Rev.14 -> GeoJSON master plan + titik ITC (butuh ezdxf)
 tools/build_itc_design.py  lapisan desain ITC dari NetDet build_overlay_dwg.py (tanpa ezdxf)
+tools/build_dwg_overlays.py  vektor DWG overlay: denah blok sel + 20 kamera (VSS-002) dan anotasi 6 lembar situs (butuh ezdxf)
 tools/encrypt_data.py      private/*.geojson -> data/secure/weberek.bin
 ```
 
@@ -51,6 +52,9 @@ tools/encrypt_data.py      private/*.geojson -> data/secure/weberek.bin
 - Desain ITC (cincin, spur, kamera, zona PIDS, grade, DAS, radio, sleeve): blok geometri
   `NetDet/05-desain/gambar-cad/cad/build_overlay_dwg.py` dijalankan langsung oleh
   `tools/build_itc_design.py`, jadi peta = lembar ITC Rev.B. Jalankan ulang setiap skrip overlay berubah.
+- Vektor DWG: `ITC-CELLBLOCK-OVERLAY.dwg` (denah tipikal blok + kamera, dipasang ke 5 atap
+  MP no. 8 yang ukurannya sama 40,5 x 17,0 m; ujung sally port dari kanopi) dan anotasi
+  `ITC-SITE-OVERLAY-REV14.dwg`. DWG tidak disalin; hanya vektornya, terenkripsi.
 - Bangun ulang: `python3 tools/build_weberek_data.py` (butuh Overpass API) dan
   `python3 tools/build_masterplan.py "<path>/MASTER PLAN Rev.14.dxf"` (butuh ezdxf).
 

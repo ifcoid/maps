@@ -180,3 +180,10 @@ h1 { margin: 4px 0 2px; font-size: 19px; line-height: 1.25; }
 .unlock { width: 100%; margin: 0 0 12px; }
 body.unlocked .unlock { display: none; }
 body:not(.unlocked) .secure-only { display: none; }
+
+/* anotasi lembar DWG */
+.dwg-note { padding: 2px 5px; border-radius: 3px; background: rgba(15, 23, 42, 0.82); color: #fef9c3;
+            font: 600 9.5px/1.25 system-ui, sans-serif; white-space: pre; border: 1px solid rgba(254, 240, 138, 0.5); }
+.sheet-select { display: flex; flex-direction: column; gap: 4px; margin: 0 0 12px; font-size: 12px; color: var(--muted); }
+.sheet-select select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+                       color: var(--text); font: inherit; font-size: 13px; }
