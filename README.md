@@ -37,6 +37,7 @@ tools/georef_rev14.py      transformasi grid CAD Rev.14 -> WGS84 (titik kontrol 
 tools/build_masterplan.py  DXF Rev.14 -> GeoJSON master plan + titik ITC (butuh ezdxf)
 tools/build_itc_design.py  lapisan desain ITC dari NetDet build_overlay_dwg.py (tanpa ezdxf)
 tools/build_dwg_overlays.py  vektor DWG overlay: denah blok sel + 20 kamera (VSS-002) dan anotasi 6 lembar situs (butuh ezdxf)
+tools/build_reference.py   rujukan: jalur fiber/microwave ITU (WFS) + catatan cakupan nPerf (tanpa tile nPerf)
 tools/encrypt_data.py      private/*.geojson -> data/secure/weberek.bin
 ```
 
@@ -57,6 +58,11 @@ tools/encrypt_data.py      private/*.geojson -> data/secure/weberek.bin
   `ITC-SITE-OVERLAY-REV14.dwg`. DWG tidak disalin; hanya vektornya, terenkripsi.
 - Bangun ulang: `python3 tools/build_weberek_data.py` (butuh Overpass API) dan
   `python3 tools/build_masterplan.py "<path>/MASTER PLAN Rev.14.dxf"` (butuh ezdxf).
+
+- Rujukan konektivitas: jalur transmisi ITU Broadband Maps (dilaporkan operator, kasar,
+  non-komersial dengan atribusi) dan catatan pengamatan peta nPerf 28 Okt 2026. Tile/data nPerf
+  tidak direproduksi: syarat nPerf (Art. 6, 8) mewajibkan izin tertulis; tiap catatan menaut ke
+  peta nPerf langsung.
 
 Hasil cek silang koridor (build 27 Okt 2026):
 

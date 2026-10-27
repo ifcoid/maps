@@ -10,7 +10,7 @@ const MAP_ID = "map";
 const SECURE_URL = "../data/secure/weberek.bin";
 const SECURE_SOURCES = {
     "weberek-masterplan-rev14": "masterplan", "weberek-itc": "itc", "weberek-itc-design": "design",
-    "weberek-dwg-overlays": "dwg"
+    "weberek-dwg-overlays": "dwg", "weberek-reference": "reference"
 };
 const PASSWORD_KEY = "weberek-maps-password";
 const BASEMAPS = {
@@ -25,6 +25,14 @@ const BASEMAPS = {
 
 // Urutan lapisan = urutan gambar (yang belakangan di atas). `match` memilih fitur dari data.
 const LAYERS = [
+    { key: "nperf", label: "Mobile coverage notes (nPerf)", note: "no samples within 10 km; nearest signal 11.5 km · reference", source: "reference",
+      match: f => f.properties.kind.startsWith("ref-nperf"),
+      style: f => f.properties.kind === "ref-nperf-ring" ? { stroke: "#fbbf24", strokeWidth: 2, fill: "#fbbf24", fillOpacity: 0.04 }
+          : { radius: 7, fill: "#fbbf24", stroke: "#0f172a", strokeWidth: 2 },
+      swatch: "#fbbf24", area: true, tag: f => f.properties.kind === "ref-nperf" ? "nPerf" : null, tagClass: "ref-tag" },
+    { key: "itu", label: "Fiber & microwave routes (ITU, reference)", note: "operator-reported, rough; pink = fiber, grey = microwave", source: "reference",
+      match: f => f.properties.kind.startsWith("ref-itu"),
+      style: f => ituStyle(f), swatch: "#ec4899" },
     { key: "transmission", label: "EDTL transmission line", note: "OSM, context", source: "power",
       match: f => f.properties.kind === "transmission",
       style: { stroke: "#a855f7", strokeWidth: 2, strokeOpacity: 0.8 }, swatch: "#a855f7" },
@@ -145,6 +153,15 @@ const DAS_STYLES = {
     "itc-bts-yard": { stroke: "#e9d5ff", strokeWidth: 1.5, fill: "#a855f7", fillOpacity: 0.2 }
 };
 
+// Jalur ITU: fiber tebal merah muda, microwave abu-abu, rencana lebih pudar.
+function ituStyle(feature) {
+    const p = feature.properties;
+    if (p.kind === "ref-itu-node") return { radius: 4.5, fill: "#ec4899", stroke: "#fff", strokeWidth: 1.5 };
+    const fiber = (p.label || "").startsWith("Fibre");
+    const planned = (p.label || "").includes("Planned");
+    return { stroke: fiber ? "#ec4899" : "#cbd5e1", strokeWidth: fiber ? 3 : 1.8, strokeOpacity: planned ? 0.45 : 0.9 };
+}
+
 // Zona Security Design Matrix: warna sama dengan lembar ITC-GEN-003.
 function gradeStyle(feature) {
     const p = feature.properties;
@@ -228,6 +245,16 @@ function popupContent(feature) {
     add("p", p.coordinate);
     add("p", p.zone && "Location: " + p.zone);
     add("p", p.note);
+    if (p.link) {
+        const a = document.createElement("a");
+        a.href = p.link;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.textContent = "Open the live nPerf map ↗";
+        const para = document.createElement("p");
+        para.appendChild(a);
+        box.appendChild(para);
+    }
     const linked = feature.properties.kind && feature.properties.kind.startsWith("itc-") && nodeDevices(p.name);
     const devices = p.devices || (linked && linked.properties.devices);
     if (linked) add("p", linked.properties.name + (linked.properties.detail ? " · " + linked.properties.detail : ""), "metric");
@@ -402,7 +429,9 @@ function build() {
 // Paskan tampilan ke data, dengan bbox dilebarkan ke arah panel legenda (kiri di layar
 // lebar, bawah di ponsel) supaya datanya tidak tertutup panel.
 function fitTo(target) {
-    const data = target === "compound"
+    const data = target === "region" && state.data.reference
+        ? features(state.data.reference, f => f.properties.kind.startsWith("ref-nperf"))
+        : target === "compound"
         ? features(state.data.design, f => f.properties.kind === "itc-ring" || f.properties.kind === "itc-bts-fall")
         : target === "site" && !state.data.masterplan
         ? state.data.site
