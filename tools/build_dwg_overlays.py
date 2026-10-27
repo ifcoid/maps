@@ -23,6 +23,7 @@ from pathlib import Path
 import ezdxf
 from ezdxf import bbox, disassemble, path as dpath
 
+from build_itc_design import BLOCK_ROWS, SCHEDULES, rows
 from georef_rev14 import cad_to_lonlat, lonlat_to_cad
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -149,6 +150,7 @@ def cellblocks(path):
                                   "outline; entrance / sally-port end from the canopy. Handedness indicative.",
                            note="Block letters A–E are not shown on the Master Plan; blocks are numbered "
                                 "counter-clockwise around the hub.",
+                           devices=rows(BLOCK_ROWS), devices_source=SCHEDULES,
                            source="ITC-CELLBLOCK-OVERLAY.dwg (ITC-VSS-002 Rev.B)"))
         for pts in fovs:
             # kamera pemilik kerucut = kamera terdekat ke titik pertama kerucut

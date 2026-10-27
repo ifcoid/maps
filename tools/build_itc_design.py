@@ -81,6 +81,111 @@ def box(c0, c1):
     return [c0, (c1[0], c0[1]), c1, (c0[0], c1[1])]
 
 
+# --- jumlah perangkat per gedung (jadwal ITC-VSS-005, ACS-001, ICM-001; laporan Bab 5) ---
+# Baris: (perangkat, jumlah, keterangan). `node` = tempel ke popup simbol node/gerbang/menara
+# yang sudah ada; `xy` = titik ringkasan baru (pusat bangunan MP no. di grid CAD Rev.14).
+CAM, DOOR, IC, CC, DU, PA = "Cameras", "Controlled doors", "Intercom stations", "Cell-call units", "Duress points", "PA zone"
+BUILDINGS = [
+    dict(node="MG", name="Main gate MG, police post + screening post (MP no. 1–3)", grade=4, tr="CAB-MG", rows=[
+        (CAM, 9, "CAM-MG01..MG08 (sally port, search and interview rooms, staff post) + CAM-AN01 ANPR at the barrier"),
+        (DOOR, 7, "main sally port, 2 interlocked pairs (4) + screening post: search, interview, staff (3); "
+                  "card+PIN+biometric, motor bolt lock, fail-secure"),
+        (IC, 3, None), (DU, 2, "gate post + screening post"),
+        ("Microwave barrier", 1, "pair across the vehicle opening"),
+        ("Screening equipment", 0, "WTMD / X-ray = BoQ option O1, pending MoJ scope decision")]),
+    dict(node="NG", name="North logistics gate NG (MP no. 29)", grade=4, tr="CAB-NG", rows=[
+        (CAM, 4, "CAM-NG01..NG04: approach, interlocked gate pair, loading dock"),
+        (DOOR, 2, "interlocked pair, card+PIN+biometric, fail-secure"), (IC, 1, None), (DU, 1, None),
+        ("Microwave barrier", 1, None)]),
+    dict(node="SG", name="South staff gate SG to housing (MP no. 29)", grade=4, tr="CAB-SG", rows=[
+        (CAM, 4, "CAM-SG01..SG04: compound side, interlock, housing-side approach"),
+        (DOOR, 2, "interlocked pair, card+PIN+biometric, fail-secure"), (IC, 1, None), (DU, 1, None),
+        ("Microwave barrier", 1, None)]),
+    *[dict(node=t, name=f"Guard tower {t} (MP no. 30)", grade=4, tr=f"CAB-{t}", rows=[
+        (CAM, 2, f"CAM-TP0{i} PTZ 32× + CAM-TT0{i} thermal 640×512"),
+        (DOOR, 1, "tower base, card+PIN+biometric, fail-secure"), (DU, 1, None),
+        ("Ring switch", 1, "fiber ring node (ERPS)")]
+        + ([("DMR repeater", 1, "primary repeater, 24 h battery (T5 on the +2.0 m platform)")] if t == "T5" else []))
+      for i, t in enumerate(["T1", "T2", "T3", "T4", "T5"], 1)],
+    dict(node="ER/CR", name="Head office (MP no. 4): ER/CR + administration", grade=2, tr="TR-ADM (ER rack R6)", rows=[
+        (CAM, 6, "CAM-AD01..AD06: main entrance, lobby, office corridors, ER/CR access corridor, staff entrance"),
+        (DOOR, 10, "administration offices 6 (card, fail-safe strike) + ER/CR 4 (grade 4, card+PIN+biometric)"),
+        ("Control room", 1, "3 operator positions, 2×4 video wall, PSIM, intercom master stations, PA head-end, "
+                            "DMR dispatch + standby repeater"),
+        ("Equipment room", 1, "6 racks (TIA-942 Rated-2 essentials), UPS A/B (N+N), DAS head-end")]),
+    dict(xy=(28235, 165), name="Central hub / auditorium (MP no. 7)", grade=3, tr="TR-BLK", rows=[
+        (CAM, 6, "CAM-HB01..HB04: hub circulation north/south, auditorium entrance + hall, link door to the head office; "
+                 "CAM-AU03..AU04: auditorium seating and exits"),
+        (DOOR, 2, "hub circulation, card+PIN, electric strike, fail-secure"), (IC, 1, None),
+        (PA, 1, "Z6 inmate-zone yard; PA amplifier 4×200 W in TR-BLK")]),
+    dict(xy=(28285, 201), name="Isolation cells (MP no. 9)", grade=4, tr="TR-BLK", rows=[
+        (CAM, 4, "CAM-IS01..IS04: entrance + staff post, cell corridor (2), exercise yard; "
+                 "+7 in-cell observation cameras proposed for MoJ endorsement (not in the 144)"),
+        (DOOR, 8, "entrance + 7 monitored cell doors, card+PIN+biometric, fail-secure"),
+        (IC, 1, "entrance"), (CC, 7, "one per isolation cell"), (DU, 1, "isolation staff post")]),
+    dict(xy=(28252, 117), name="Kitchen + dining (MP no. 18–20)", grade=3, tr="TR-KTV", rows=[
+        (CAM, 6, "CAM-KD01..KD06: kitchen production, servery line, knife and tool store, delivery door, dining hall (2)"),
+        (DOOR, None, "part of the shared group of 9 doors: kitchen, clinic, vocational/tool store, warehouse "
+                     "(split per door at D-4)"),
+        (IC, 1, None), (DU, 1, None), (PA, 1, "Z8 support and visitor")]),
+    dict(xy=(28273, 165), name="Library–visitor (MP no. 5–6)", grade=3, tr="TR-KTV", rows=[
+        (CAM, 4, "CAM-AU05..AU08: library reading room, visitor hall north/south, visitor entrance search"),
+        (IC, 1, None), (DU, 1, "visitor desk"), (PA, 1, "Z8 support and visitor"),
+        ("Cellular", 0, "no DAS: inmate zone (PAGAR-02)")]),
+    dict(xy=(28399, 216), name="Chapel (MP no. 10)", grade=3, tr="CAB-PH", rows=[
+        (CAM, 2, "CAM-AU01..AU02: nave, entrance"), (IC, 1, None)]),
+    dict(xy=(28330, 255), name="Vocational center + warehouse (MP no. 11–12)", grade=3, tr="TR-VOC", rows=[
+        (CAM, 8, "CAM-VC01..VC04: workshop halls (2), tool store (tool control), entrance; "
+                 "CAM-WH01..WH04: loading dock, store aisles (2), entrance + office"),
+        (DOOR, None, "part of the shared group of 9 doors (kitchen, clinic, vocational/tool store, warehouse)"),
+        (IC, 2, None), (DU, 1, "vocational center"), (PA, 1, "Z8 support and visitor")]),
+    dict(xy=(28280, 97), name="Clinic (MP no. 16)", grade=3, tr="TR-KLN", rows=[
+        (CAM, 4, "CAM-KL01..KL04: entrance + waiting, treatment corridor, pharmacy store door, observation ward corridor"),
+        (DOOR, None, "part of the shared group of 9 doors (kitchen, clinic, vocational/tool store, warehouse)"),
+        (IC, 1, None), (DU, 1, None), (PA, 1, "Z8 support and visitor")]),
+    dict(xy=(28210, 67), name="Indoor multifunction field (MP no. 17)", grade=3, tr="TR-FLD", rows=[
+        (CAM, 4, "CAM-IF01..IF04: corner cameras cross-covering the playing floor"), (IC, 1, None),
+        (PA, 1, "Z7 indoor field")]),
+    dict(xy=(28134, 214), name="Existing prison building (MP no. 31)", grade=3, tr="TR-EXB", rows=[
+        (CAM, 4, "CAM-EB01..EB04: entrance, corridors east/west, yard side"), (IC, 1, None),
+        ("Retaining-wall sleeve", 1, "spur TR-EXB crosses the 2 m retaining wall")]),
+    dict(xy=(28230, -205), name="Agriculture workshop + hydrant area (MP no. 21–22)", grade=1, tr="CAB-AG (via TR-HSE)", rows=[
+        (CAM, 4, "CAM-AG01..AG04: workshop entrance, tool + chemical store, work yard, hydrant pump + water tank"),
+        ("Network drops", 2, None)]),
+    dict(xy=(28235, 190), name="Inmate-zone fence PAGAR-02 (whole zone)", grade=3, tr="TR-BLK", rows=[
+        (CAM, 8, "CAM-PF01..PF08 line-crossing analytics (shown on the map)"),
+        (DOOR, 2, "PAGAR-02 gates, service + staff, card+PIN, electric gate lock; positions at D-4"),
+        (IC, 2, "at the PAGAR-02 gates"), (PA, 1, "Z6 inmate-zone yard"),
+        ("Cellular", 0, "no DAS, no jamming; residual signal ≤ −110 dBm at PAGAR-02")]),
+]
+# blok sel: per blok (ditempel ke denah blok di weberek-dwg-overlays)
+BLOCK_ROWS = [(CAM, 4, "CAM-Bx01..Bx04: corridor (2), shower (privacy masking), sally port"),
+              (DOOR, 2, "block sally-port pair, card+PIN, electric strike, fail-secure"),
+              (IC, 1, None), (PA, 1, "one of Z1–Z5 (indoor + block yard)"),
+              ("Cell doors", 0, "ordinary cells: mechanical locks (custodial regime), no cameras in cells")]
+TOTALS = [(CAM, 144, "138 scheduled + 6 placement reserve (ITC-VSS-005)"), (DOOR, 57, "grade 4: 28, grade 3: 23, grade 2: 6"),
+          (IC, 22, None), (CC, 7, None), (DU, 14, "+ portable-radio emergency buttons"), ("PA zones", 8, "Z1–Z8"),
+          ("Wall detection zones", 12, "fiber sensing, ≈1,185 m"), ("Microwave barrier pairs", 3, "MG, NG, SG"),
+          ("Portable / mobile radios", 65, "60 portables + 5 mobiles, 2 repeaters")]
+SCHEDULES = "ITC-VSS-005, ITC-VSS-003, ITC-ACS-001, ITC-ICM-001 Rev.B; Interim Report Ch. 5 (provisional, D-4)"
+
+
+def check_totals():
+    """Jumlah per gedung + blok + kamera peta-saja harus sama dengan jadwal."""
+    def total(item):
+        return (sum(q or 0 for b in BUILDINGS for a, q, _ in b["rows"] if a == item)
+                + 5 * sum(q for a, q, _ in BLOCK_ROWS if a == item))
+    map_only = 18 + 9 + 4            # PW01..18, ST01..09, HS01..04: titik sendiri di peta, tanpa ringkasan gedung
+    shared_doors = 9                 # baris 10 ACS-001: dapur, klinik, vokasional/tool store, gudang
+    assert total(CAM) + map_only == 138, total(CAM)
+    assert total(DOOR) + shared_doors == 57, total(DOOR)
+    assert (total(IC), total(CC), total(DU)) == (22, 7, 14), (total(IC), total(CC), total(DU))
+
+
+def rows(items):
+    return [{"item": a, "qty": b, "detail": c} for a, b, c in items]
+
+
 def build(g):
     CR, PH, BTS, WALL, F2, F3, HSE = g["CR"], g["PH"], g["BTS"], g["WALL"], g["F2"], g["F3"], g["HSE"]
     TOWERS, GATES = g["TOWERS"], g["GATES"]
@@ -210,6 +315,14 @@ def build(g):
                 "Entries of the head office, police post, power house, BTS yard and parking.")
         else:
             cam("site", xy, f"CAM-HS{i - 8:02d}", "Staff housing access camera", 1, "Estate access point (grade 1).")
+
+    # --- jumlah perangkat per gedung ---
+    check_totals()
+    for b in BUILDINGS:
+        xy = b.get("xy") or (CR if b["node"] == "ER/CR" else GATES.get(b["node"]) or TOWERS[b["node"]])
+        out.append(point("itc-building", xy, name=b["name"], node=b.get("node"), grade=b["grade"],
+                         detail=f"Uplink {b['tr']}", devices=rows(b["rows"]), source=SCHEDULES))
+    out.append(point("itc-totals", CR, name="ITC device totals (provisional)", devices=rows(TOTALS), source=SCHEDULES))
 
     # --- radio (Bab 6) ---
     out.append(point("itc-radio", TOWERS["T5"], name="DMR repeater 1 (primary), tower T5",

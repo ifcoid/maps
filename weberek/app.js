@@ -91,6 +91,10 @@ const LAYERS = [
       match: f => f.properties.sheet === state.sheet,
       style: { stroke: "#fef08a", strokeWidth: 1.2, strokeOpacity: 0.9 }, swatch: "#fef08a",
       tag: f => f.properties.kind === "dwg-note" ? f.properties.text : null, tagClass: "dwg-note" },
+    { key: "buildings", label: "Devices per building", note: "click: cameras, doors, intercom, duress, PA", source: "design",
+      match: f => f.properties.kind === "itc-building" && !f.properties.node,
+      style: { radius: 7, fill: "#f8fafc", stroke: "#0f172a", strokeWidth: 2.5 }, swatch: "#f8fafc", dot: true,
+      tag: f => String(deviceCount(f.properties.devices, "Cameras")), tagClass: "building-tag" },
     { key: "radio", label: "Radio repeaters, DAS head-end, sleeves", note: "DMR on T5 + control room · 3 retaining-wall sleeves", source: "design",
       match: f => ["itc-radio", "itc-das-he", "itc-sleeve"].includes(f.properties.kind),
       style: f => POINT_STYLES[f.properties.kind], swatch: "#34d399", dot: true },
@@ -177,6 +181,31 @@ function pointData() {
     return { type: "FeatureCollection", features: all.filter(f => f.geometry.type === "Point") };
 }
 
+// Jumlah satu jenis perangkat dari tabel `devices` (0 bila tidak ada).
+function deviceCount(devices, item) {
+    const row = (devices || []).find(r => r.item === item);
+    return row && row.qty ? row.qty : 0;
+}
+
+// Tabel perangkat untuk popup dan panel total.
+function deviceTable(devices) {
+    const table = document.createElement("table");
+    table.className = "devices";
+    devices.forEach(({ item, qty, detail }) => {
+        const tr = table.insertRow();
+        tr.insertCell().textContent = item;
+        tr.insertCell().textContent = qty === null ? "shared" : qty === 0 ? "–" : qty;
+        tr.insertCell().textContent = detail || "";
+    });
+    return table;
+}
+
+// Ringkasan perangkat yang ditempel ke simbol node (gerbang, menara, ER/CR).
+function nodeDevices(name) {
+    if (!state.data.design) return null;
+    return state.data.design.features.find(f => f.properties.kind === "itc-building" && f.properties.node === name);
+}
+
 function popupContent(feature) {
     const p = feature.properties;
     const box = document.createElement("div");
@@ -199,6 +228,17 @@ function popupContent(feature) {
     add("p", p.coordinate);
     add("p", p.zone && "Location: " + p.zone);
     add("p", p.note);
+    const linked = feature.properties.kind && feature.properties.kind.startsWith("itc-") && nodeDevices(p.name);
+    const devices = p.devices || (linked && linked.properties.devices);
+    if (linked) add("p", linked.properties.name + (linked.properties.detail ? " · " + linked.properties.detail : ""), "metric");
+    if (devices) {
+        box.appendChild(deviceTable(devices));
+        if (linked && !p.devices) {
+            add("p", "Device schedule: " + linked.properties.source, "src");
+            return box;
+        }
+        if (p.devices_source) add("p", "Device schedule: " + p.devices_source, "src");
+    }
     add("p", p.source ? "Source: " + p.source : p.layer && `Source: Master Plan Rev.14, CAD layer "${p.layer}"`, "src");
     return box;
 }
@@ -418,6 +458,17 @@ function load(name, url) {
     }));
 }
 
+function renderTotals() {
+    const totals = state.data.design && state.data.design.features.find(f => f.properties.kind === "itc-totals");
+    const box = document.getElementById("totals");
+    if (!totals) return;
+    box.replaceChildren(deviceTable(totals.properties.devices));
+    const src = document.createElement("p");
+    src.className = "src";
+    src.textContent = "Source: " + totals.properties.source;
+    box.appendChild(src);
+}
+
 function showLock(message) {
     const lock = document.getElementById("lock");
     lock.hidden = false;
@@ -435,6 +486,7 @@ async function openSecure(password, remember) {
     }
     document.getElementById("lock").hidden = true;
     document.body.classList.add("unlocked");
+    renderTotals();
     renderLegend();
     state.view = null;
     build();
