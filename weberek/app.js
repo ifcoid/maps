@@ -3,8 +3,15 @@ import {
 } from "../assets/vendor/crootjs/map.js";
 import { addMarker } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.16/mapmarker.min.js";
 import { addScaleBar } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.16/mapcontrol.min.js";
+import { unlock } from "./secure.js";
 
 const MAP_ID = "map";
+// Data terenkripsi: nama berkas di bundel -> nama sumber di state.data.
+const SECURE_URL = "../data/secure/weberek.bin";
+const SECURE_SOURCES = {
+    "weberek-masterplan-rev14": "masterplan", "weberek-itc": "itc", "weberek-itc-design": "design"
+};
+const PASSWORD_KEY = "weberek-maps-password";
 const BASEMAPS = {
     satellite: {
         tiles: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -206,9 +213,14 @@ function renderFacts() {
     }));
 }
 
+// Lapisan yang datanya sudah ada (lapisan terenkripsi muncul setelah password benar).
+function availableLayers() {
+    return LAYERS.filter(layer => layer.source === "points" || state.data[layer.source]);
+}
+
 function renderLegend() {
     const list = document.getElementById("legend");
-    list.replaceChildren(...[...LAYERS].reverse().map(layer => {
+    list.replaceChildren(...[...availableLayers()].reverse().map(layer => {
         const li = document.createElement("li");
         const label = document.createElement("label");
         const input = document.createElement("input");
@@ -268,7 +280,7 @@ function drawLayers() {
     clearMap(MAP_ID);
     labelMarkers.forEach(marker => marker.remove());
     labelMarkers = [];
-    LAYERS.filter(layer => state.visible.has(layer.key)).forEach(layer => {
+    availableLayers().filter(layer => state.visible.has(layer.key)).forEach(layer => {
         const source = layer.source === "points" ? pointData() : state.data[layer.source];
         const pick = layer.source === "points" ? source : features(source, layer.match);
         const popup = layer.popup === undefined ? popupContent : layer.popup;
@@ -336,6 +348,8 @@ function build() {
 function fitTo(target) {
     const data = target === "compound"
         ? features(state.data.design, f => f.properties.kind === "itc-ring" || f.properties.kind === "itc-bts-fall")
+        : target === "site" && !state.data.masterplan
+        ? state.data.site
         : target === "site"
         ? { type: "FeatureCollection", features: [
             ...state.data.masterplan.features.filter(f => f.properties.kind === "mp-boundary"),
@@ -382,19 +396,69 @@ function load(name, url) {
     }));
 }
 
+function showLock(message) {
+    const lock = document.getElementById("lock");
+    lock.hidden = false;
+    document.getElementById("lockError").textContent = message || "";
+    document.getElementById("lockPassword").focus();
+}
+
+async function openSecure(password, remember) {
+    const bundle = await unlock(SECURE_URL, password);
+    Object.entries(SECURE_SOURCES).forEach(([file, source]) => {
+        if (bundle[file]) state.data[source] = bundle[file];
+    });
+    if (remember) {
+        try { sessionStorage.setItem(PASSWORD_KEY, password); } catch { /* penyimpanan diblokir */ }
+    }
+    document.getElementById("lock").hidden = true;
+    document.body.classList.add("unlocked");
+    renderLegend();
+    state.view = null;
+    build();
+    fitTo("site");
+}
+
+function bindLock() {
+    const form = document.getElementById("lockForm");
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const input = document.getElementById("lockPassword");
+        const button = form.querySelector("button[type=submit]");
+        button.disabled = true;
+        document.getElementById("lockError").textContent = "Decrypting…";
+        try {
+            await openSecure(input.value.trim(), true);
+            input.value = "";
+        } catch (error) {
+            showLock(error.message === "Wrong password" ? "Wrong password." : "Could not open the data: " + error.message);
+        } finally {
+            button.disabled = false;
+        }
+    });
+    document.getElementById("lockSkip").addEventListener("click", () => {
+        document.getElementById("lock").hidden = true;
+    });
+    document.getElementById("unlockButton").addEventListener("click", () => showLock());
+}
+
 Promise.all([
     load("site", "../data/weberek-site.geojson"),
     load("corridor", "../data/weberek-access-corridor.geojson"),
-    load("power", "../data/weberek-power.geojson"),
-    load("masterplan", "../data/weberek-masterplan-rev14.geojson"),
-    load("itc", "../data/weberek-itc.geojson"),
-    load("design", "../data/weberek-itc-design.geojson")
-]).then(entries => {
+    load("power", "../data/weberek-power.geojson")
+]).then(async entries => {
     state.data = Object.fromEntries(entries);
     renderFacts();
     renderLegend();
     bindUI();
+    bindLock();
     build();
+    let saved = null;
+    try { saved = sessionStorage.getItem(PASSWORD_KEY); } catch { /* penyimpanan diblokir */ }
+    if (saved) {
+        try { await openSecure(saved, false); return; } catch { /* password lama tidak berlaku */ }
+    }
+    showLock();
 }).catch(error => {
     document.getElementById("facts").textContent = "Map data failed to load: " + error.message;
 });

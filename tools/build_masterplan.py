@@ -22,7 +22,7 @@ import ezdxf
 from georef_rev14 import cad_to_lonlat, residuals, THETA
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-OUT = ROOT / "data"
+OUT = ROOT / "private"   # data sensitif: plaintext tidak di-commit, lihat tools/encrypt_data.py
 
 # Batas area yang diambil (grid CAD); di luarnya legenda dan kop gambar.
 BBOX = (27500, -650, 29500, 850)

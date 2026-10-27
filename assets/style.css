@@ -161,3 +161,22 @@ h1 { margin: 4px 0 2px; font-size: 19px; line-height: 1.25; }
     .panel.collapsed .panel-body { display: none; }
     .panel-body { padding: 12px 16px; }
 }
+
+/* data terenkripsi: dialog password */
+.lock { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 16px;
+        background: rgba(15, 23, 42, 0.55); }
+.lock[hidden] { display: none; }
+.lock-card { width: min(420px, 100%); padding: 20px; border-radius: 12px; background: var(--surface);
+             color: var(--text); box-shadow: var(--shadow); }
+.lock-card h2 { margin: 0 0 6px; font-size: 18px; }
+.lock-card p { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+.lock-card input { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px;
+                   background: var(--bg); color: var(--text); font: inherit; }
+.lock-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.lock-actions button, .unlock { padding: 8px 14px; border: 1px solid var(--accent); border-radius: 8px;
+                                background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.lock-actions button.ghost { background: transparent; color: var(--accent); }
+.lock-error { margin: 10px 0 0 !important; min-height: 1.2em; color: #dc2626 !important; }
+.unlock { width: 100%; margin: 0 0 12px; }
+body.unlocked .unlock { display: none; }
+body:not(.unlocked) .secure-only { display: none; }

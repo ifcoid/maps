@@ -11,17 +11,32 @@ Dibangun dengan [CrootJS](https://croot.js.org) (`map.js`, `mapmarker.js`,
 |---|---|
 | `weberek/` | Master Plan Rev.14 tergeoreferensi, koridor akses 9,4 km (rute fiber backhaul), trafo rural 50 kVA eksisting terdekat, usulan tie-in suplai ke power house, node ITC (ER/CR, PH, BTS, gerbang, menara), dan desain ITC Interim Rev.1: cincin fiber, spur, 66 kamera situs/perimeter, 12 zona deteksi tembok + microwave, grade Security Design Matrix, zona DAS, fall zone BTS, repeater DMR, sleeve |
 
+## Data terenkripsi
+
+Repo ini publik. Layout Master Plan dan desain keamanan ITC (kamera, zona deteksi, grade,
+zona seluler) hanya di-commit dalam bentuk terenkripsi: `data/secure/weberek.bin`
+(AES-256-GCM, kunci PBKDF2-SHA256 600.000 iterasi dari password). Halaman peta meminta
+password lalu mendekripsi di browser (`weberek/secure.js`); tanpa password hanya lapisan
+publik (koridor, listrik, sudut tapak IR) yang tampil.
+
+- Plaintext dibangun ke `private/` (di-ignore), lalu `python3 tools/encrypt_data.py`.
+- Password: `MAPS_DATA_PASSWORD` di `/home/adb/awangga/.env`. Jangan di-commit, jangan
+  dikirim lewat kanal yang sama dengan tautan peta.
+
 ## Struktur
 
 ```
 index.html                 katalog peta
 assets/style.css           gaya bersama
 weberek/                   peta koridor akses & suplai listrik
-data/*.geojson             data hasil build (jangan diedit tangan)
+data/*.geojson             data publik hasil build (jangan diedit tangan)
+data/secure/weberek.bin    data sensitif terenkripsi (master plan + desain ITC)
+private/                   plaintext data sensitif (di-ignore, input encrypt_data.py)
 tools/build_weberek_data.py  koridor, situs, listrik: OSM + koordinat Inception Report
 tools/georef_rev14.py      transformasi grid CAD Rev.14 -> WGS84 (titik kontrol + bukti)
 tools/build_masterplan.py  DXF Rev.14 -> GeoJSON master plan + titik ITC (butuh ezdxf)
 tools/build_itc_design.py  lapisan desain ITC dari NetDet build_overlay_dwg.py (tanpa ezdxf)
+tools/encrypt_data.py      private/*.geojson -> data/secure/weberek.bin
 ```
 
 ## Data dan sumber

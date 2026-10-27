@@ -231,7 +231,7 @@ def main():
     g = load_geometry(src)
     features, summary = build(g)
     assert summary["cams"] == 66, summary          # = jumlah di lembar VSS-001
-    path = ROOT / "data" / "weberek-itc-design.geojson"
+    path = ROOT / "private" / "weberek-itc-design.geojson"   # dienkripsi oleh tools/encrypt_data.py
     path.write_text(json.dumps({"type": "FeatureCollection", "name": "weberek-itc-design",
                                 "source": SHEETS, "features": features}, ensure_ascii=False, separators=(",", ":")))
     print(f"{path.name}: {len(features)} features; {summary}")

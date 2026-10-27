@@ -10,3 +10,6 @@ output
 
 # Python
 __pycache__/
+
+# Data sensitif (layout lapas, desain keamanan): hanya versi terenkripsi data/secure/ yang di-commit
+/private/

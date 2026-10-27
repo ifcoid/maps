@@ -28,9 +28,10 @@
         <div class="basemap" role="group" aria-label="Zoom to">
           <button type="button" data-fit="corridor">Corridor</button>
           <button type="button" data-fit="site">Site</button>
-          <button type="button" data-fit="compound">Compound</button>
+          <button type="button" data-fit="compound" class="secure-only">Compound</button>
         </div>
       </div>
+      <button type="button" class="unlock" id="unlockButton">Unlock site layout &amp; ITC design layers</button>
 
       <ul class="legend" id="legend"></ul>
 
@@ -51,6 +52,18 @@
     </div>
   </aside>
 </main>
+<div class="lock" id="lock" hidden>
+  <form class="lock-card" id="lockForm">
+    <h2>Restricted layers</h2>
+    <p>The Master Plan layout and the ITC security design (cameras, detection zones, security grades, cellular zones) are encrypted. Enter the password to show them on this map.</p>
+    <input type="password" id="lockPassword" autocomplete="current-password" placeholder="Password" required aria-label="Password">
+    <div class="lock-actions">
+      <button type="submit">Unlock</button>
+      <button type="button" id="lockSkip" class="ghost">Public layers only</button>
+    </div>
+    <p class="lock-error" id="lockError" role="status"></p>
+  </form>
+</div>
 <script type="module" src="app.js"></script>
 </body>
 </html>
