@@ -1,0 +1,303 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Existing 50 kVA transformer",
+    "kind": "transformer",
+    "detail": "Pole-mounted, H-frame, three-phase MV; ground-level feeder pillar with LV panel",
+    "coordinate": "S 9 00 58.40, E 125 53 34.97",
+    "distance_to_site_entry_m": 628,
+    "note": "Adequate for construction power only; 24/7 operation needs a dedicated substation + 2 gensets (MEP scope)",
+    "source": "Inception Report Fig. 42-44"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     125.8930472,
+     -9.0162222
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Existing MV distribution line (indicative)",
+    "kind": "mv-existing",
+    "length_m": 2587,
+    "note": "Straight pole line from the Aldeia Weberek junction (D) to the transformer, matching the approx. 2,577 m stated in the Inception Report; alignment not surveyed",
+    "source": "Inception Report Fig. 42"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      125.91491,
+      -9.024894
+     ],
+     [
+      125.8930472,
+      -9.0162222
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Proposed supply tie-in: transformer to site entry",
+    "kind": "mv-proposed",
+    "length_m": 628,
+    "note": "Indicative route along the existing track outside the south boundary, avoiding the compound; continues inside the site to the power house near the chapel (MP no. 10, 14/15). MEP/EDTL scope.",
+    "source": "OSM way 1215048172; MoM 3 Jul 2026; Master Plan Rev.14"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      125.8930472,
+      -9.0162222
+     ],
+     [
+      125.8931461,
+      -9.0165283
+     ],
+     [
+      125.8933904,
+      -9.0166087
+     ],
+     [
+      125.8935882,
+      -9.0165436
+     ],
+     [
+      125.8938713,
+      -9.016444
+     ],
+     [
+      125.8943561,
+      -9.0163827
+     ],
+     [
+      125.8948215,
+      -9.0161874
+     ],
+     [
+      125.8952326,
+      -9.0160993
+     ],
+     [
+      125.8955196,
+      -9.0161031
+     ],
+     [
+      125.8958066,
+      -9.0159844
+     ],
+     [
+      125.896303,
+      -9.015835
+     ],
+     [
+      125.8965668,
+      -9.0156971
+     ],
+     [
+      125.89659,
+      -9.0154481
+     ],
+     [
+      125.8966288,
+      -9.0152834
+     ],
+     [
+      125.8968305,
+      -9.0151455
+     ],
+     [
+      125.8969934,
+      -9.0149042
+     ],
+     [
+      125.8971718,
+      -9.0145824
+     ],
+     [
+      125.8974122,
+      -9.0144369
+     ],
+     [
+      125.8974699,
+      -9.01435
+     ],
+     [
+      125.8974096,
+      -9.0143103
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "EDTL transmission line",
+    "kind": "transmission",
+    "source": "OpenStreetMap way 569858669"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      125.9001124,
+      -9.099247
+     ],
+     [
+      125.9042537,
+      -9.0960688
+     ],
+     [
+      125.9063566,
+      -9.0944268
+     ],
+     [
+      125.9068823,
+      -9.0928059
+     ],
+     [
+      125.9085774,
+      -9.0873076
+     ],
+     [
+      125.9097147,
+      -9.083589
+     ],
+     [
+      125.9107339,
+      -9.0802094
+     ],
+     [
+      125.9117854,
+      -9.0767238
+     ],
+     [
+      125.9129333,
+      -9.0730369
+     ],
+     [
+      125.9137809,
+      -9.0702823
+     ],
+     [
+      125.9146285,
+      -9.0676336
+     ],
+     [
+      125.9176004,
+      -9.0658749
+     ],
+     [
+      125.9207439,
+      -9.064042
+     ],
+     [
+      125.9237695,
+      -9.0622938
+     ],
+     [
+      125.9244704,
+      -9.0618738
+     ],
+     [
+      125.9269345,
+      -9.0603973
+     ],
+     [
+      125.9299278,
+      -9.0586492
+     ],
+     [
+      125.9314026,
+      -9.0577512
+     ],
+     [
+      125.9327817,
+      -9.0569116
+     ],
+     [
+      125.9370625,
+      -9.0544111
+     ],
+     [
+      125.9393263,
+      -9.053055
+     ],
+     [
+      125.9413862,
+      -9.0518789
+     ],
+     [
+      125.9447873,
+      -9.0508406
+     ],
+     [
+      125.9484458,
+      -9.0497916
+     ],
+     [
+      125.9516351,
+      -9.0488079
+     ],
+     [
+      125.9517857,
+      -9.048751
+     ],
+     [
+      125.9534805,
+      -9.0482579
+     ],
+     [
+      125.955162,
+      -9.0477467
+     ],
+     [
+      125.9581554,
+      -9.0468991
+     ],
+     [
+      125.9612453,
+      -9.0459031
+     ],
+     [
+      125.9647429,
+      -9.0449284
+     ],
+     [
+      125.9695065,
+      -9.043445
+     ],
+     [
+      125.9737551,
+      -9.0422053
+     ],
+     [
+      125.9779072,
+      -9.040955
+     ],
+     [
+      125.9820378,
+      -9.0397048
+     ],
+     [
+      125.9853852,
+      -9.03873
+     ],
+     [
+      125.9886682,
+      -9.0377764
+     ]
+    ]
+   }
+  }
+ ]
+}

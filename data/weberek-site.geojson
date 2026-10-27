@@ -1,0 +1,117 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Weberek Correctional Facility site",
+    "kind": "site",
+    "area_ha": 18.1,
+    "location": "Bairo Wesa, Aldeia Weberek, Suco Dotik, Posto Alas, Manufahi",
+    "source": "Inception Report Table 3 (WGS84 corners P1-P4)"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       125.8958222,
+       -9.0162
+      ],
+      [
+       125.8931083,
+       -9.0135667
+      ],
+      [
+       125.8958917,
+       -9.0108444
+      ],
+      [
+       125.8986667,
+       -9.0128139
+      ],
+      [
+       125.8958222,
+       -9.0162
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "P1",
+    "kind": "boundary",
+    "source": "Inception Report Table 3"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     125.8958222,
+     -9.0162
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "P2",
+    "kind": "boundary",
+    "source": "Inception Report Table 3"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     125.8931083,
+     -9.0135667
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "P3",
+    "kind": "boundary",
+    "source": "Inception Report Table 3"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     125.8958917,
+     -9.0108444
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "P4",
+    "kind": "boundary",
+    "source": "Inception Report Table 3"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     125.8986667,
+     -9.0128139
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Existing prison building",
+    "kind": "building",
+    "source": "Inception Report Table 3"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     125.8947667,
+     -9.0131917
+    ]
+   }
+  }
+ ]
+}

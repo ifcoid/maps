@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weberek Access & Power</title>
+<meta name="description" content="Weberek Correctional Building (Manufahi, Timor-Leste): 9.4 km access corridor, fiber backhaul route and the nearest existing rural transformer.">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="layout">
+  <div id="map" class="map" aria-label="Map of the Weberek access corridor and power supply"></div>
+
+  <aside class="panel" id="panel">
+    <button class="panel-toggle" id="panelToggle" aria-expanded="true" aria-controls="panelBody">Legend</button>
+    <div class="panel-body" id="panelBody">
+      <p class="eyebrow">DED Weberek Correctional Building · ITC</p>
+      <h1>Access corridor &amp; power supply</h1>
+      <p class="lead">Bairo Wesa, Aldeia Weberek, Suco Dotik, Posto Alas, Manufahi</p>
+
+      <dl class="facts" id="facts"></dl>
+
+      <div class="toolbar">
+        <div class="basemap" role="group" aria-label="Basemap">
+          <button type="button" data-basemap="satellite" aria-pressed="true">Satellite</button>
+          <button type="button" data-basemap="osm" aria-pressed="false">Street</button>
+        </div>
+        <div class="basemap" role="group" aria-label="Zoom to">
+          <button type="button" data-fit="corridor">Corridor</button>
+          <button type="button" data-fit="site">Site</button>
+        </div>
+      </div>
+
+      <ul class="legend" id="legend"></ul>
+
+      <details class="notes">
+        <summary>Sources &amp; notes</summary>
+        <ul>
+          <li>Site corners P1–P4, existing building and the 50&nbsp;kVA transformer: Inception Report (Table&nbsp;3, Fig.&nbsp;41–44), WGS84.</li>
+          <li>Road and EDTL transmission line geometry: © OpenStreetMap contributors (ODbL). The OSM road from junction A reaches the site boundary at the length shown; the Inception Report gives 9.4&nbsp;km to the site.</li>
+          <li>Section A–C is the first 4.0&nbsp;km from junction A (concrete-stabilized, IR Fig.&nbsp;41); C–E is the degraded unpaved remainder.</li>
+          <li>The MV line alignment and the supply tie-in are indicative (not surveyed). Substation, genset and MV works are MEP/EDTL scope; they are shown here because they set the ITC power interface.</li>
+          <li>The P1–P4 polygon is the surveyed corner set only; the full allocated parcel is stated as 25&nbsp;ha.</li>
+        </ul>
+      </details>
+    </div>
+  </aside>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
