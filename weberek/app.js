@@ -1,6 +1,6 @@
 import {
     createMap, removeMap, addGeoJSON, clearMap, fitMap, getMapView, setMapView, getGeoJSON, getBBox
-} from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.16/map.min.js";
+} from "../assets/vendor/crootjs/map.js";
 import { addMarker } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.16/mapmarker.min.js";
 import { addScaleBar } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.16/mapcontrol.min.js";
 
@@ -9,9 +9,10 @@ const BASEMAPS = {
     satellite: {
         tiles: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         attribution: "Imagery © Esri, Maxar, Earthstar Geographics · Data © OpenStreetMap contributors",
-        maxZoom: 18
+        maxZoom: 21,
+        maxNativeZoom: 18  // citra Esri di lokasi ini hanya sampai z18; di atasnya diperbesar
     },
-    osm: { tiles: true, maxZoom: 19 }
+    osm: { tiles: true, maxZoom: 21, maxNativeZoom: 19 }
 };
 
 // Urutan lapisan = urutan gambar (yang belakangan di atas). `match` memilih fitur dari data.
@@ -247,6 +248,7 @@ function build() {
         tiles: base.tiles,
         attribution: base.attribution,
         maxZoom: base.maxZoom,
+        maxNativeZoom: base.maxNativeZoom,
         center: [125.905, -9.04],
         zoom: 13
     });
