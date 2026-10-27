@@ -29,6 +29,12 @@ const LAYERS = [
     { key: "parcel", label: "Prison parcel (25 ha)", note: "Master Plan Rev.14, georeferenced ±50 m", source: "masterplan",
       match: f => f.properties.kind === "mp-boundary",
       style: { stroke: "#f87171", strokeWidth: 2.5, fill: "#f87171", fillOpacity: 0.08 }, swatch: "#f87171", area: true },
+    { key: "grades", label: "Security zoning, grades 1–4", note: "SDM proposal · ITC-GEN-003", source: "design",
+      match: f => f.properties.kind.startsWith("itc-grade"),
+      style: f => gradeStyle(f), swatch: "#dc2626", area: true, off: true },
+    { key: "das", label: "Cellular: DAS zones, no-DAS zone, BTS", note: "purple = DAS, red = no DAS · ITC-COM-002", source: "design",
+      match: f => ["itc-das", "itc-nodas", "itc-bts-fall", "itc-bts-yard"].includes(f.properties.kind),
+      style: f => DAS_STYLES[f.properties.kind], swatch: "#a855f7", area: true, off: true },
     { key: "layout", label: "Master Plan Rev.14 layout", note: "buildings, roads, survey boundary", source: "masterplan",
       match: f => ["mp-line", "mp-roof", "mp-survey", "mp-existing"].includes(f.properties.kind),
       style: f => layoutStyle(f), swatch: "#e2e8f0" },
@@ -54,9 +60,29 @@ const LAYERS = [
     { key: "backhaul", label: "Fiber backhaul duct (ITC)", note: "ER/CR → MG → site exit to Dotik", source: "itc",
       match: f => f.properties.kind === "itc-backhaul",
       style: { stroke: "#22d3ee", strokeWidth: 3.5 }, swatch: "#22d3ee" },
+    { key: "spurs", label: "Building spurs & BDA feed", note: "12-core, schematic · ITC-NET-002", source: "design",
+      match: f => f.properties.kind === "itc-spur" || f.properties.kind === "itc-bda",
+      style: f => f.properties.kind === "itc-bda" ? { stroke: "#c084fc", strokeWidth: 2.5 } : { stroke: "#60a5fa", strokeWidth: 1.8 },
+      swatch: "#60a5fa" },
+    { key: "pids", label: "Wall detection zones Z01–Z12 + microwave", note: "fiber sensing on the wall top · ITC-PID-001", source: "design",
+      match: f => f.properties.kind === "itc-pids" || f.properties.kind === "itc-mw",
+      style: f => f.properties.kind === "itc-mw" ? { radius: 5, fill: "#a855f7", stroke: "#fff", strokeWidth: 2 }
+          : { stroke: f.properties.zone_index % 2 ? "#facc15" : "#f97316", strokeWidth: 7, strokeOpacity: 0.9 },
+      swatch: "#f97316", tag: f => f.properties.kind === "itc-pids" ? f.properties.name.replace("Detection zone ", "") : null },
+    { key: "ring", label: "Perimeter fiber ring, 9 nodes", note: "24-core, ≈1.4 km, ERPS · ITC-NET-002", source: "design",
+      match: f => f.properties.kind === "itc-ring",
+      style: { stroke: "#f43f5e", strokeWidth: 3.5 }, swatch: "#f43f5e" },
+    { key: "cams", label: "Cameras, site & perimeter (66 of 144)", note: "positions provisional · ITC-VSS-001", source: "design",
+      match: f => f.properties.kind === "itc-cam",
+      style: f => ({ radius: 4.5, fill: CAM_COLORS[f.properties.cam], stroke: "#0f172a", strokeWidth: 1.5 }),
+      swatch: "#ef4444", dot: true },
+    { key: "radio", label: "Radio repeaters, DAS head-end, sleeves", note: "DMR on T5 + control room · 3 retaining-wall sleeves", source: "design",
+      match: f => ["itc-radio", "itc-das-he", "itc-sleeve"].includes(f.properties.kind),
+      style: f => POINT_STYLES[f.properties.kind], swatch: "#34d399", dot: true },
     { key: "itc", label: "ITC nodes, gates & towers", note: "ER/CR, PH, BTS, MG/NG/SG, T1–T5", source: "itc",
       match: f => f.geometry.type === "Point" && f.properties.kind.startsWith("itc-"),
-      style: f => POINT_STYLES[f.properties.kind], swatch: "#22d3ee", dot: true, markers: true },
+      style: f => POINT_STYLES[f.properties.kind], swatch: "#22d3ee", dot: true,
+      tag: f => f.properties.name },
     { key: "survey", label: "Benchmarks & water sources", note: "BM1–BM3, boreholes W1–W3", source: "itc",
       match: f => f.properties.kind === "mp-benchmark" || f.properties.kind === "mp-water",
       style: f => POINT_STYLES[f.properties.kind], swatch: "#f8fafc", dot: true },
@@ -72,9 +98,35 @@ const POINT_STYLES = {
     "itc-node": { radius: 7, fill: "#22d3ee", stroke: "#0f172a", strokeWidth: 2 },
     "itc-gate": { radius: 5, fill: "#f8fafc", stroke: "#0f172a", strokeWidth: 2 },
     "itc-tower": { radius: 5, fill: "#fbbf24", stroke: "#0f172a", strokeWidth: 2 },
+    "itc-radio": { radius: 8, fill: "#34d399", stroke: "#0f172a", strokeWidth: 2 },
+    "itc-das-he": { radius: 4, fill: "#a855f7", stroke: "#fff", strokeWidth: 1.5 },
+    "itc-sleeve": { radius: 5, fill: "#fde047", stroke: "#0f172a", strokeWidth: 2 },
     "mp-benchmark": { radius: 5, fill: "#ef4444", stroke: "#fff", strokeWidth: 2 },
     "mp-water": { radius: 5, fill: "#0ea5e9", stroke: "#fff", strokeWidth: 2 }
 };
+
+// Warna kamera mengikuti legenda lembar ITC-VSS-001.
+const CAM_COLORS = {
+    wall: "#ef4444", f2: "#f97316", ptz: "#3b82f6", thermal: "#d946ef",
+    gate: "#fca5a5", anpr: "#fb923c", site: "#22c55e"
+};
+
+const DAS_STYLES = {
+    "itc-das": { stroke: "#a855f7", strokeWidth: 1.5, fill: "#a855f7", fillOpacity: 0.4 },
+    "itc-nodas": { stroke: "#ef4444", strokeWidth: 2, fill: "#ef4444", fillOpacity: 0.18 },
+    "itc-bts-fall": { stroke: "#a855f7", strokeWidth: 2, fill: "#a855f7", fillOpacity: 0.08 },
+    "itc-bts-yard": { stroke: "#e9d5ff", strokeWidth: 1.5, fill: "#a855f7", fillOpacity: 0.2 }
+};
+
+// Zona Security Design Matrix: warna sama dengan lembar ITC-GEN-003.
+function gradeStyle(feature) {
+    const p = feature.properties;
+    if (p.kind === "itc-grade4-line") return { stroke: "#b91c1c", strokeWidth: 6 };
+    if (p.kind === "itc-grade4-point") return { stroke: "#b91c1c", strokeWidth: 2.5, fill: "#b91c1c", fillOpacity: 0.15 };
+    const fills = { 3: ["#f87171", 0.22], "3c": ["#dc2626", 0.35], 2: ["#3b82f6", 0.4], 1: ["#22c55e", 0.35] };
+    const [color, opacity] = fills[p.grade];
+    return { stroke: color, strokeWidth: 1.5, fill: color, fillOpacity: opacity };
+}
 
 // Garis layout master plan: terang di atas citra satelit, gelap di atas peta jalan.
 function layoutStyle(feature) {
@@ -86,7 +138,7 @@ function layoutStyle(feature) {
     return { stroke: light ? "#e2e8f0" : "#64748b", strokeWidth: 0.8, strokeOpacity: 0.75 };
 }
 
-const state = { basemap: "satellite", visible: new Set(LAYERS.map(l => l.key)), data: {}, view: null };
+const state = { basemap: "satellite", visible: new Set(LAYERS.filter(l => !l.off).map(l => l.key)), data: {}, view: null };
 
 function km(m) {
     return (m / 1000).toFixed(1);
@@ -114,6 +166,7 @@ function popupContent(feature) {
         box.appendChild(el);
     };
     add("h3", p.name + (p.label ? ": " + p.label : ""));
+    if (p.grade) add("p", `Security grade ${p.grade === "3c" ? "3 (core)" : p.grade}`, "metric");
     if (p.length_m) add("p", `Length ≈ ${p.length_m.toLocaleString("en")} m`, "metric");
     if (p.chainage_m !== undefined) add("p", `Chainage ${p.chainage_m.toLocaleString("en")} m from A`, "metric");
     if (p.area_ha) add("p", `P1–P4 area ≈ ${p.area_ha} ha`, "metric");
@@ -192,7 +245,23 @@ function renderLegend() {
     }));
 }
 
-// Label HTML untuk lapisan bertanda `markers`; dicabut dan dipasang ulang bersama lapisannya.
+// Titik label: koordinat titik, atau titik tengah (menurut jarak) sebuah garis.
+function anchorOf(geometry) {
+    if (geometry.type === "Point") return geometry.coordinates;
+    const c = geometry.coordinates;
+    const seg = c.slice(1).map((q, i) => Math.hypot(q[0] - c[i][0], q[1] - c[i][1]));
+    let rest = seg.reduce((a, b) => a + b, 0) / 2;
+    for (let i = 0; i < seg.length; i++) {
+        if (rest <= seg[i]) {
+            const t = rest / seg[i];
+            return [c[i][0] + t * (c[i + 1][0] - c[i][0]), c[i][1] + t * (c[i + 1][1] - c[i][1])];
+        }
+        rest -= seg[i];
+    }
+    return c[c.length - 1];
+}
+
+// Label HTML untuk lapisan yang punya `tag`; dicabut dan dipasang ulang bersama lapisannya.
 let labelMarkers = [];
 
 function drawLayers() {
@@ -204,13 +273,16 @@ function drawLayers() {
         const pick = layer.source === "points" ? source : features(source, layer.match);
         const popup = layer.popup === undefined ? popupContent : layer.popup;
         addGeoJSON(MAP_ID, pick, { style: layer.style, popup });
-        if (layer.markers) {
-            pick.features.filter(f => f.properties.kind === "itc-node").forEach(f => {
+        if (layer.tag) {
+            pick.features.forEach(f => {
+                const text = layer.tag(f);
+                if (!text) return;
                 const tag = document.createElement("div");
-                tag.className = "itc-tag";
-                tag.textContent = f.properties.name;
-                labelMarkers.push(addMarker(MAP_ID, f.geometry.coordinates, {
-                    element: tag, anchor: "bottom", title: f.properties.label, popup: popupContent(f)
+                tag.className = f.geometry.type === "Point" ? "itc-tag" : "itc-tag zone";
+                tag.textContent = text;
+                labelMarkers.push(addMarker(MAP_ID, anchorOf(f.geometry), {
+                    element: tag, anchor: f.geometry.type === "Point" ? "bottom" : "center",
+                    title: f.properties.label || f.properties.name, popup: popupContent(f)
                 }));
             });
         }
@@ -262,7 +334,9 @@ function build() {
 // Paskan tampilan ke data, dengan bbox dilebarkan ke arah panel legenda (kiri di layar
 // lebar, bawah di ponsel) supaya datanya tidak tertutup panel.
 function fitTo(target) {
-    const data = target === "site"
+    const data = target === "compound"
+        ? features(state.data.design, f => f.properties.kind === "itc-ring" || f.properties.kind === "itc-bts-fall")
+        : target === "site"
         ? { type: "FeatureCollection", features: [
             ...state.data.masterplan.features.filter(f => f.properties.kind === "mp-boundary"),
             ...state.data.power.features.filter(f => f.properties.kind === "transformer")] }
@@ -313,7 +387,8 @@ Promise.all([
     load("corridor", "../data/weberek-access-corridor.geojson"),
     load("power", "../data/weberek-power.geojson"),
     load("masterplan", "../data/weberek-masterplan-rev14.geojson"),
-    load("itc", "../data/weberek-itc.geojson")
+    load("itc", "../data/weberek-itc.geojson"),
+    load("design", "../data/weberek-itc-design.geojson")
 ]).then(entries => {
     state.data = Object.fromEntries(entries);
     renderFacts();

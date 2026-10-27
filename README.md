@@ -9,7 +9,7 @@ Dibangun dengan [CrootJS](https://croot.js.org) (`map.js`, `mapmarker.js`,
 
 | Halaman | Isi |
 |---|---|
-| `weberek/` | Master Plan Rev.14 tergeoreferensi, koridor akses 9,4 km (rute fiber backhaul), trafo rural 50 kVA eksisting terdekat, usulan tie-in suplai ke power house, node ITC (ER/CR, PH, BTS, gerbang, menara) |
+| `weberek/` | Master Plan Rev.14 tergeoreferensi, koridor akses 9,4 km (rute fiber backhaul), trafo rural 50 kVA eksisting terdekat, usulan tie-in suplai ke power house, node ITC (ER/CR, PH, BTS, gerbang, menara), dan desain ITC Interim Rev.1: cincin fiber, spur, 66 kamera situs/perimeter, 12 zona deteksi tembok + microwave, grade Security Design Matrix, zona DAS, fall zone BTS, repeater DMR, sleeve |
 
 ## Struktur
 
@@ -21,6 +21,7 @@ data/*.geojson             data hasil build (jangan diedit tangan)
 tools/build_weberek_data.py  koridor, situs, listrik: OSM + koordinat Inception Report
 tools/georef_rev14.py      transformasi grid CAD Rev.14 -> WGS84 (titik kontrol + bukti)
 tools/build_masterplan.py  DXF Rev.14 -> GeoJSON master plan + titik ITC (butuh ezdxf)
+tools/build_itc_design.py  lapisan desain ITC dari NetDet build_overlay_dwg.py (tanpa ezdxf)
 ```
 
 ## Data dan sumber
@@ -32,6 +33,9 @@ tools/build_masterplan.py  DXF Rev.14 -> GeoJSON master plan + titik ITC (butuh 
 - Master Plan Rev.14: DWG proyek induk (`NetDet/02-referensi/proyek-induk-weberek/sumber/`),
   dikonversi ke DXF dengan `NetDet/03-survei/tools/dwg-convert.sh -f dxf`. Titik ITC
   disalin dari `NetDet/05-desain/gambar-cad/cad/build_overlay_dwg.py`.
+- Desain ITC (cincin, spur, kamera, zona PIDS, grade, DAS, radio, sleeve): blok geometri
+  `NetDet/05-desain/gambar-cad/cad/build_overlay_dwg.py` dijalankan langsung oleh
+  `tools/build_itc_design.py`, jadi peta = lembar ITC Rev.B. Jalankan ulang setiap skrip overlay berubah.
 - Bangun ulang: `python3 tools/build_weberek_data.py` (butuh Overpass API) dan
   `python3 tools/build_masterplan.py "<path>/MASTER PLAN Rev.14.dxf"` (butuh ezdxf).
 

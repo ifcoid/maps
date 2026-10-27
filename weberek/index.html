@@ -15,7 +15,7 @@
     <button class="panel-toggle" id="panelToggle" aria-expanded="true" aria-controls="panelBody">Legend</button>
     <div class="panel-body" id="panelBody">
       <p class="eyebrow">DED Weberek Correctional Building · ITC</p>
-      <h1>Site, access corridor &amp; power supply</h1>
+      <h1>Site, access, power &amp; ITC design</h1>
       <p class="lead">Bairo Wesa, Aldeia Weberek, Suco Dotik, Posto Alas, Manufahi</p>
 
       <dl class="facts" id="facts"></dl>
@@ -28,6 +28,7 @@
         <div class="basemap" role="group" aria-label="Zoom to">
           <button type="button" data-fit="corridor">Corridor</button>
           <button type="button" data-fit="site">Site</button>
+          <button type="button" data-fit="compound">Compound</button>
         </div>
       </div>
 
@@ -42,6 +43,9 @@
           <li>The MV line alignment and the supply tie-in are indicative (not surveyed). Substation, genset and MV works are MEP/EDTL scope; they are shown here because they set the ITC power interface.</li>
           <li>Master Plan Rev.14 is drawn on a local survey grid (BM1–BM3) with no geodetic tie, and every geographic coordinate in the Inception Report comes from Google Earth. The plan is placed by a rigid best fit (scale 1, rotation −2.66°) to the P1–P4 corners and the existing building: position accuracy ±50&nbsp;m. Checks: the Rev.14 main gate falls 9&nbsp;m from where the access road reaches the site, and all CPT/GRS field points fall inside the 25&nbsp;ha parcel.</li>
           <li>The P1–P4 corners (18&nbsp;ha) do not match the Rev.14 parcel (25&nbsp;ha) in shape; Rev.14 governs. Proposal: one GNSS session on BM1–BM3 to tie the survey grid to WGS84/UTM&nbsp;51S and remove the ±50&nbsp;m uncertainty.</li>
+          <li>ITC design layers (fiber ring, spurs, cameras, wall detection zones, security grades, DAS zones, radio) come from the ITC drawing set Rev.B of the Interim Design Rev.1 (sheets ITC-GEN-002/003, NET-002, VSS-001, PID-001, COM-002), built from the same CAD coordinates. Positions are provisional until the D-4 detailed design and carry the ±50&nbsp;m placement of the plan.</li>
+          <li>The map shows the 66 site and perimeter cameras. The other cameras of the 144 are inside buildings (cell blocks ITC-VSS-002; hub, isolation, support buildings and head office ITC-VSS-003). Tower PTZ and thermal symbols are offset from their tower for legibility, as on the sheet.</li>
+          <li>Security grades and DAS zones are off by default: tick them in the legend.</li>
         </ul>
       </details>
     </div>
