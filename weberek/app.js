@@ -30,11 +30,11 @@ const LAYERS = [
       style: { stroke: "#f87171", strokeWidth: 2.5, fill: "#f87171", fillOpacity: 0.08 }, swatch: "#f87171", area: true },
     { key: "layout", label: "Master Plan Rev.14 layout", note: "buildings, roads, survey boundary", source: "masterplan",
       match: f => ["mp-line", "mp-roof", "mp-survey", "mp-existing"].includes(f.properties.kind),
-      style: f => layoutStyle(f), popup: f => f.properties.name ? popupContent(f) : null, swatch: "#e2e8f0" },
+      style: f => layoutStyle(f), swatch: "#e2e8f0" },
     { key: "walls", label: "Prison wall & fences", note: "PAGAR 01 / 02 / 03", source: "masterplan",
       match: f => ["mp-wall", "mp-fence"].includes(f.properties.kind),
       style: f => f.properties.kind === "mp-wall" ? { stroke: "#4ade80", strokeWidth: 3 } : { stroke: "#86efac", strokeWidth: 1.5 },
-      popup: false, swatch: "#4ade80" },
+      swatch: "#4ade80" },
     { key: "frontage", label: "Existing track across the site", note: "superseded by the site layout", source: "corridor",
       match: f => f.properties.kind === "road-frontage",
       style: { stroke: "#cbd5e1", strokeWidth: 3 }, swatch: "#cbd5e1" },
@@ -120,8 +120,9 @@ function popupContent(feature) {
     add("p", p.detail);
     add("p", p.location);
     add("p", p.coordinate);
+    add("p", p.zone && "Location: " + p.zone);
     add("p", p.note);
-    add("p", p.source && "Source: " + p.source, "src");
+    add("p", p.source ? "Source: " + p.source : p.layer && `Source: Master Plan Rev.14, CAD layer "${p.layer}"`, "src");
     return box;
 }
 
