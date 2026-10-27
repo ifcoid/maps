@@ -8,7 +8,7 @@
     "kind": "transformer",
     "detail": "Pole-mounted, H-frame, three-phase MV; ground-level feeder pillar with LV panel",
     "coordinate": "S 9 00 58.40, E 125 53 34.97",
-    "distance_to_site_entry_m": 628,
+    "distance_to_power_house_m": 884,
     "note": "Adequate for construction power only; 24/7 operation needs a dedicated substation + 2 gensets (MEP scope)",
     "source": "Inception Report Fig. 42-44"
    },
@@ -46,11 +46,11 @@
   {
    "type": "Feature",
    "properties": {
-    "name": "Proposed supply tie-in: transformer to site entry",
+    "name": "Proposed supply tie-in: transformer to power house",
     "kind": "mv-proposed",
-    "length_m": 628,
-    "note": "Indicative route along the existing track outside the south boundary, avoiding the compound; continues inside the site to the power house near the chapel (MP no. 10, 14/15). MEP/EDTL scope.",
-    "source": "OSM way 1215048172; MoM 3 Jul 2026; Master Plan Rev.14"
+    "length_m": 884,
+    "note": "Indicative route outside the Rev.14 parcel: alongside the existing MV line to the south corner, along the south-east boundary to the main gate (MG), then to the power house (MP no. 14/15). MEP/EDTL scope.",
+    "source": "MoM 3 Jul 2026; Master Plan Rev.14 (georeferenced, +-50 m)"
    },
    "geometry": {
     "type": "LineString",
@@ -60,80 +60,20 @@
       -9.0162222
      ],
      [
-      125.8931461,
-      -9.0165283
+      125.8958146,
+      -9.0175137
      ],
      [
-      125.8933904,
-      -9.0166087
+      125.8975606,
+      -9.0143047
      ],
      [
-      125.8935882,
-      -9.0165436
+      125.8974115,
+      -9.0142246
      ],
      [
-      125.8938713,
-      -9.016444
-     ],
-     [
-      125.8943561,
-      -9.0163827
-     ],
-     [
-      125.8948215,
-      -9.0161874
-     ],
-     [
-      125.8952326,
-      -9.0160993
-     ],
-     [
-      125.8955196,
-      -9.0161031
-     ],
-     [
-      125.8958066,
-      -9.0159844
-     ],
-     [
-      125.896303,
-      -9.015835
-     ],
-     [
-      125.8965668,
-      -9.0156971
-     ],
-     [
-      125.89659,
-      -9.0154481
-     ],
-     [
-      125.8966288,
-      -9.0152834
-     ],
-     [
-      125.8968305,
-      -9.0151455
-     ],
-     [
-      125.8969934,
-      -9.0149042
-     ],
-     [
-      125.8971718,
-      -9.0145824
-     ],
-     [
-      125.8974122,
-      -9.0144369
-     ],
-     [
-      125.8974699,
-      -9.01435
-     ],
-     [
-      125.8974096,
-      -9.0143103
+      125.8977615,
+      -9.0131636
      ]
     ]
    }

@@ -118,6 +118,16 @@ h1 { margin: 4px 0 2px; font-size: 19px; line-height: 1.25; }
     font: 600 11.5px/1.4 system-ui, sans-serif;
     white-space: nowrap;
 }
+.itc-tag {
+    margin-bottom: 9px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #0e7490;
+    color: #fff;
+    font: 700 11px/1.5 system-ui, sans-serif;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
 .crootjs-marker-label { color: #fff !important; text-shadow: 0 0 3px #000, 0 0 2px #000; font-weight: 600; }
 
 /* isi popup */

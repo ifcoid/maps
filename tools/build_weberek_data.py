@@ -16,6 +16,8 @@ import pathlib
 import urllib.parse
 import urllib.request
 
+from georef_rev14 import cad_to_lonlat
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 OVERPASS = "https://overpass-api.de/api/interpreter"
@@ -25,9 +27,16 @@ USER_AGENT = "ifcoid-maps/0.1 (NetDet Weberek ITC)"
 # (id, dibalik?) sesuai arah A -> situs.
 CORRIDOR_WAYS = [(132078055, False), (132078712, False), (150033098, True), (1101678303, True)]
 TRANSMISSION_WAY = 569858669  # jalur transmisi EDTL (power=line) yang lewat Dotik
-# Track di luar sisi selatan situs: dari dekat trafo (ujung akhir) ke titik masuk E (ujung awal).
-SOUTH_TRACK_WAY = 1215048172
 CLIP_BBOX = (125.86, -9.10, 125.99, -8.99)  # lon/lat min-max untuk memotong jalur transmisi
+
+# Gerbang utama (MG) dan power house (PH) Master Plan Rev.14, grid CAD; sama dengan
+# NetDet build_overlay_dwg.py. Tie-in suplai masuk lewat MG ke PH.
+MAIN_GATE_CAD = (28387, 91)
+MAIN_GATE = cad_to_lonlat(*MAIN_GATE_CAD)
+POWER_HOUSE = cad_to_lonlat(28420, 210)
+# Sudut selatan dan timur persil 25 ha Rev.14 (PAGAR 03), grid CAD.
+PARCEL_SOUTH = (28228.46, -280.53)
+PARCEL_EAST = (28518.28, 320.25)
 
 # Panjang ruas cor dari A menurut Inception Report Figure 41 (A-B-C, +-4 km).
 CONCRETE_LENGTH = 4000
@@ -161,7 +170,7 @@ def write(name, features):
 
 def main():
     DATA.mkdir(exist_ok=True)
-    ways = fetch_ways([w for w, _ in CORRIDOR_WAYS] + [TRANSMISSION_WAY, SOUTH_TRACK_WAY])
+    ways = fetch_ways([w for w, _ in CORRIDOR_WAYS] + [TRANSMISSION_WAY])
     road = chain(ways)
 
     ring = [SITE[k] for k in ("P1", "P2", "P3", "P4", "P1")]
@@ -211,8 +220,14 @@ def main():
     write("weberek-access-corridor.geojson", corridor)
 
     # --- listrik ---
-    # Tie-in lewat track selatan, di luar persil: trafo -> track -> E.
-    tie_in = [TRANSFORMER] + ways[SOUTH_TRACK_WAY][::-1] + [point_e]
+    # Tie-in di luar persil Rev.14: trafo -> sudut selatan persil (sejajar garis MV
+    # eksisting) -> menyusur sisi tenggara persil sampai depan gerbang utama -> MG -> PH.
+    t = ((MAIN_GATE_CAD[0] - PARCEL_SOUTH[0]) * (PARCEL_EAST[0] - PARCEL_SOUTH[0])
+         + (MAIN_GATE_CAD[1] - PARCEL_SOUTH[1]) * (PARCEL_EAST[1] - PARCEL_SOUTH[1])) / (
+        (PARCEL_EAST[0] - PARCEL_SOUTH[0]) ** 2 + (PARCEL_EAST[1] - PARCEL_SOUTH[1]) ** 2)
+    gate_front = (PARCEL_SOUTH[0] + t * (PARCEL_EAST[0] - PARCEL_SOUTH[0]),
+                  PARCEL_SOUTH[1] + t * (PARCEL_EAST[1] - PARCEL_SOUTH[1]))
+    tie_in = [TRANSFORMER, cad_to_lonlat(*PARCEL_SOUTH), cad_to_lonlat(*gate_front), MAIN_GATE, POWER_HOUSE]
     # Garis MV eksisting: tiang lurus dari simpang Aldeia Weberek (D) ke trafo; panjangnya
     # cocok dengan IR Fig. 42 (+-2.577 m), jadi tidak mengikuti jalan.
     mv_route = [weberek, TRANSFORMER]
@@ -221,17 +236,17 @@ def main():
         point(TRANSFORMER, name="Existing 50 kVA transformer", kind="transformer",
               detail="Pole-mounted, H-frame, three-phase MV; ground-level feeder pillar with LV panel",
               coordinate="S 9 00 58.40, E 125 53 34.97",
-              distance_to_site_entry_m=round(length(tie_in)),
+              distance_to_power_house_m=round(length(tie_in)),
               note="Adequate for construction power only; 24/7 operation needs a dedicated substation + 2 gensets (MEP scope)",
               source="Inception Report Fig. 42-44"),
         line_feature(mv_route, name="Existing MV distribution line (indicative)", kind="mv-existing",
                      length_m=round(length(mv_route)),
                      note="Straight pole line from the Aldeia Weberek junction (D) to the transformer, matching the approx. 2,577 m stated in the Inception Report; alignment not surveyed",
                      source="Inception Report Fig. 42"),
-        line_feature(tie_in, name="Proposed supply tie-in: transformer to site entry", kind="mv-proposed",
+        line_feature(tie_in, name="Proposed supply tie-in: transformer to power house", kind="mv-proposed",
                      length_m=round(length(tie_in)),
-                     note="Indicative route along the existing track outside the south boundary, avoiding the compound; continues inside the site to the power house near the chapel (MP no. 10, 14/15). MEP/EDTL scope.",
-                     source=f"OSM way {SOUTH_TRACK_WAY}; MoM 3 Jul 2026; Master Plan Rev.14"),
+                     note="Indicative route outside the Rev.14 parcel: alongside the existing MV line to the south corner, along the south-east boundary to the main gate (MG), then to the power house (MP no. 14/15). MEP/EDTL scope.",
+                     source="MoM 3 Jul 2026; Master Plan Rev.14 (georeferenced, +-50 m)"),
         line_feature(transmission, name="EDTL transmission line", kind="transmission",
                      source=f"OpenStreetMap way {TRANSMISSION_WAY}"),
     ]
