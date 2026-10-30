@@ -1,8 +1,12 @@
 import {
-    createMap, removeMap, addGeoJSON, clearMap, fitMap, getMapView, setMapView, getGeoJSON, getBBox, addMapControl
-} from "../assets/vendor/crootjs/map.js";
-import { addMarker } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.16/mapmarker.min.js";
-import { addScaleBar } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.16/mapcontrol.min.js";
+    createMap, addGeoJSON, clearMap, fitMap, showLayer, hideLayer, getGeoJSON, getBBox
+} from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.18/map.min.js";
+import { addMarker } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.18/mapmarker.min.js";
+import {
+    addScaleBar, addBasemapControl, addCoordinateControl, addFullscreenButton
+} from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.18/mapcontrol.min.js";
+import { addMeasureControl, downloadMapImage } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.18/maptools.min.js";
+import { createAffineTransform } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.18/geomeasure.min.js";
 import { unlock } from "./secure.js";
 
 const MAP_ID = "map";
@@ -47,14 +51,22 @@ const BASEMAPS = {
     }
 };
 const BASEMAP_KEY = "weberek-maps-basemap";
+// Grid CAD Master Plan Rev.14 (m) <-> [lng, lat]: empat sudut kompleks dari
+// tools/georef_rev14.py cad_to_lonlat (rigid, +-50 m), untuk tampilan koordinat.
+const CAD_GRID = createAffineTransform(
+    [[27900, -250], [28550, -250], [28550, 470], [27900, 470]],
+    [[125.8928434, -9.0171003], [125.8987486, -9.0173727], [125.8990521, -9.0108699], [125.8931469, -9.0105975]]);
 
 // Urutan lapisan = urutan gambar (yang belakangan di atas). `match` memilih fitur dari data.
+// text (label di peta), labelOptions, renderer, minZoom diteruskan ke addGeoJSON (crootjs map.js);
+// `label` adalah nama lapisan di legenda.
 const LAYERS = [
     { key: "nperf", label: "Mobile coverage notes (nPerf)", note: "no samples within 10 km; nearest signal 11.5 km · reference", source: "reference",
       match: f => f.properties.kind.startsWith("ref-nperf"),
-      style: f => f.properties.kind === "ref-nperf-ring" ? { stroke: "#fbbf24", strokeWidth: 2, fill: "#fbbf24", fillOpacity: 0.04 }
+      style: f => f.properties.kind === "ref-nperf-ring" ? { stroke: "#fbbf24", strokeWidth: 2, strokeDasharray: "8 6", fill: "#fbbf24", fillOpacity: 0.04 }
           : { radius: 7, fill: "#fbbf24", stroke: "#0f172a", strokeWidth: 2 },
-      swatch: "#fbbf24", area: true, tag: f => f.properties.kind === "ref-nperf" ? "nPerf" : null, tagClass: "ref-tag" },
+      swatch: "#fbbf24", area: true, text: f => f.properties.kind === "ref-nperf" ? "nPerf" : null,
+      labelOptions: { className: "ref-tag", overlap: true } },
     { key: "itu", label: "Fiber & microwave routes (ITU, reference)", note: "operator-reported, rough; pink = fiber, grey = microwave", source: "reference",
       match: f => f.properties.kind.startsWith("ref-itu"),
       style: f => ituStyle(f), swatch: "#ec4899" },
@@ -64,13 +76,14 @@ const LAYERS = [
     { key: "contours", label: "Survey contours, 1 m", note: "El. +159 to +176 (GNSS) · ±0.000 = El. +160.00", source: "topo",
       match: f => f.properties.kind === "topo-contour",
       style: f => contourStyle(f), swatch: "#d97706", off: true,
-      tag: f => f.properties.tag, tagClass: "contour-tag" },
+      text: "tag", labelOptions: { className: "contour-tag", minZoom: 16 } },
     { key: "agri", label: "Agricultural area (58 ha)", note: "Master Plan Rev.14", source: "masterplan",
       match: f => f.properties.kind === "mp-agri",
       style: { stroke: "#fb923c", strokeWidth: 2, fill: "#fb923c", fillOpacity: 0.06 }, swatch: "#fb923c", area: true },
     { key: "site", label: "Site corners P1–P4 (IR)", note: "Google Earth picks, Table 3", source: "site",
       match: f => f.properties.kind === "site",
-      style: { stroke: "#facc15", strokeWidth: 1.5, fill: "#facc15", fillOpacity: 0.05 }, swatch: "#facc15", area: true },
+      style: { stroke: "#facc15", strokeWidth: 1.5, strokeDasharray: "5 4", fill: "#facc15", fillOpacity: 0.05 },
+      swatch: "#facc15", area: true },
     { key: "parcel", label: "Prison parcel (25 ha)", note: "Master Plan Rev.14, georeferenced ±50 m", source: "masterplan",
       match: f => f.properties.kind === "mp-boundary",
       style: { stroke: "#f87171", strokeWidth: 2.5, fill: "#f87171", fillOpacity: 0.08 }, swatch: "#f87171", area: true },
@@ -82,7 +95,7 @@ const LAYERS = [
       style: f => DAS_STYLES[f.properties.kind], swatch: "#a855f7", area: true, off: true },
     { key: "layout", label: "Master Plan Rev.14 layout", note: "buildings, roads, survey boundary", source: "masterplan",
       match: f => ["mp-line", "mp-roof", "mp-survey", "mp-existing"].includes(f.properties.kind),
-      style: f => layoutStyle(f), swatch: "#e2e8f0" },
+      style: f => layoutStyle(f), swatch: "#e2e8f0", renderer: "canvas" },
     { key: "walls", label: "Prison wall & fences", note: "PAGAR 01 / 02 / 03", source: "masterplan",
       match: f => ["mp-wall", "mp-fence"].includes(f.properties.kind),
       style: f => f.properties.kind === "mp-wall" ? { stroke: "#4ade80", strokeWidth: 3 } : { stroke: "#86efac", strokeWidth: 1.5 },
@@ -98,10 +111,10 @@ const LAYERS = [
       style: { stroke: "#ef4444", strokeWidth: 5 }, swatch: "#ef4444" },
     { key: "mv", label: "Existing MV line D → transformer", note: "IR Fig. 42, ≈2.6 km, not surveyed", source: "power",
       match: f => f.properties.kind === "mv-existing",
-      style: { stroke: "#3b82f6", strokeWidth: 2.5 }, swatch: "#3b82f6" },
+      style: { stroke: "#3b82f6", strokeWidth: 2.5, strokeDasharray: "8 5" }, swatch: "#3b82f6" },
     { key: "tiein", label: "Proposed supply tie-in", note: "transformer → parcel edge → MG → PH, indicative", source: "power",
       match: f => f.properties.kind === "mv-proposed",
-      style: { stroke: "#e879f9", strokeWidth: 4 }, swatch: "#e879f9" },
+      style: { stroke: "#e879f9", strokeWidth: 4, strokeDasharray: "10 6" }, swatch: "#e879f9" },
     { key: "backhaul", label: "Fiber backhaul duct (ITC)", note: "ER/CR → MG → site exit to Dotik", source: "itc",
       match: f => f.properties.kind === "itc-backhaul",
       style: { stroke: "#22d3ee", strokeWidth: 3.5 }, swatch: "#22d3ee" },
@@ -113,7 +126,8 @@ const LAYERS = [
       match: f => f.properties.kind === "itc-pids" || f.properties.kind === "itc-mw",
       style: f => f.properties.kind === "itc-mw" ? { radius: 5, fill: "#a855f7", stroke: "#fff", strokeWidth: 2 }
           : { stroke: f.properties.zone_index % 2 ? "#facc15" : "#f97316", strokeWidth: 7, strokeOpacity: 0.9 },
-      swatch: "#f97316", tag: f => f.properties.kind === "itc-pids" ? f.properties.name.replace("Detection zone ", "") : null },
+      swatch: "#f97316", text: f => f.properties.kind === "itc-pids" ? f.properties.name.replace("Detection zone ", "") : null,
+      labelOptions: { className: "itc-tag zone", minZoom: 16 } },
     { key: "ring", label: "Perimeter fiber ring, 9 nodes", note: "24-core, ≈1.4 km, ERPS · ITC-NET-002", source: "design",
       match: f => f.properties.kind === "itc-ring",
       style: { stroke: "#f43f5e", strokeWidth: 3.5 }, swatch: "#f43f5e" },
@@ -123,22 +137,22 @@ const LAYERS = [
       swatch: "#ef4444", dot: true },
     { key: "cellblocks", label: "Cell blocks: plan, 20 cameras, fields of view", note: "typical plan on 5 blocks · ITC-VSS-002 DWG", source: "dwg",
       match: f => f.properties.kind.startsWith("cb-") || f.properties.kind === "itc-cam",
-      style: f => cellBlockStyle(f), swatch: "#facc15" },
+      style: f => cellBlockStyle(f), swatch: "#facc15", renderer: "canvas", minZoom: 16 },
     { key: "notes", label: "Drawing annotations", note: "labels of the sheet chosen below · site overlay DWG", source: "dwg",
       match: f => f.properties.sheet === state.sheet,
       style: { stroke: "#fef08a", strokeWidth: 1.2, strokeOpacity: 0.9 }, swatch: "#fef08a",
-      tag: f => f.properties.kind === "dwg-note" ? f.properties.text : null, tagClass: "dwg-note" },
+      text: f => f.properties.kind === "dwg-note" ? f.properties.text : null, labelOptions: { className: "dwg-note" } },
     { key: "buildings", label: "Devices per building", note: "click: cameras, doors, intercom, duress, PA", source: "design",
       match: f => f.properties.kind === "itc-building" && !f.properties.node,
       style: { radius: 7, fill: "#f8fafc", stroke: "#0f172a", strokeWidth: 2.5 }, swatch: "#f8fafc", dot: true,
-      tag: f => String(deviceCount(f.properties.devices, "Cameras")), tagClass: "building-tag" },
+      text: f => String(deviceCount(f.properties.devices, "Cameras")), labelOptions: { className: "building-tag", minZoom: 17 } },
     { key: "radio", label: "Radio repeaters, DAS head-end, sleeves", note: "DMR on T5 + control room · 3 retaining-wall sleeves", source: "design",
       match: f => ["itc-radio", "itc-das-he", "itc-sleeve"].includes(f.properties.kind),
       style: f => POINT_STYLES[f.properties.kind], swatch: "#34d399", dot: true },
     { key: "itc", label: "ITC nodes, gates & towers", note: "ER/CR, PH, BTS, MG/NG/SG, T1–T5", source: "itc",
       match: f => f.geometry.type === "Point" && f.properties.kind.startsWith("itc-"),
       style: f => POINT_STYLES[f.properties.kind], swatch: "#22d3ee", dot: true,
-      tag: f => f.properties.name },
+      text: "name", labelOptions: { className: "itc-tag", overlap: true } },
     { key: "survey", label: "Benchmarks & water sources", note: "BM1–BM3, boreholes W1–W3", source: "itc",
       match: f => f.properties.kind === "mp-benchmark" || f.properties.kind === "mp-water",
       style: f => POINT_STYLES[f.properties.kind], swatch: "#f8fafc", dot: true },
@@ -185,7 +199,7 @@ function contourStyle(feature) {
 const DAS_STYLES = {
     "itc-das": { stroke: "#a855f7", strokeWidth: 1.5, fill: "#a855f7", fillOpacity: 0.4 },
     "itc-nodas": { stroke: "#ef4444", strokeWidth: 2, fill: "#ef4444", fillOpacity: 0.18 },
-    "itc-bts-fall": { stroke: "#a855f7", strokeWidth: 2, fill: "#a855f7", fillOpacity: 0.08 },
+    "itc-bts-fall": { stroke: "#a855f7", strokeWidth: 2, strokeDasharray: "6 4", fill: "#a855f7", fillOpacity: 0.08 },
     "itc-bts-yard": { stroke: "#e9d5ff", strokeWidth: 1.5, fill: "#a855f7", fillOpacity: 0.2 }
 };
 
@@ -195,7 +209,8 @@ function ituStyle(feature) {
     if (p.kind === "ref-itu-node") return { radius: 4.5, fill: "#ec4899", stroke: "#fff", strokeWidth: 1.5 };
     const fiber = (p.label || "").startsWith("Fibre");
     const planned = (p.label || "").includes("Planned");
-    return { stroke: fiber ? "#ec4899" : "#cbd5e1", strokeWidth: fiber ? 3 : 1.8, strokeOpacity: planned ? 0.45 : 0.9 };
+    return { stroke: fiber ? "#ec4899" : "#cbd5e1", strokeWidth: fiber ? 3 : 1.8, strokeOpacity: 0.9,
+             strokeDasharray: planned ? "6 5" : undefined };
 }
 
 // Zona Security Design Matrix: warna sama dengan lembar ITC-GEN-003.
@@ -218,7 +233,7 @@ function layoutStyle(feature) {
     return { stroke: light ? "#e2e8f0" : "#64748b", strokeWidth: 0.8, strokeOpacity: 0.75 };
 }
 
-const state = { sheet: "", basemap: savedBasemap(), visible: new Set(LAYERS.filter(l => !l.off).map(l => l.key)), data: {}, view: null };
+const state = { sheet: "", basemap: savedBasemap(), visible: new Set(LAYERS.filter(l => !l.off).map(l => l.key)), data: {} };
 
 function km(m) {
     return (m / 1000).toFixed(1);
@@ -348,7 +363,7 @@ function renderLegend() {
         input.addEventListener("change", () => {
             if (input.checked) state.visible.add(layer.key);
             else state.visible.delete(layer.key);
-            drawLayers();
+            (input.checked ? showLayer : hideLayer)(MAP_ID, layer.key);
         });
         const swatch = document.createElement("span");
         swatch.className = "swatch";
@@ -376,47 +391,19 @@ function renderLegend() {
     }));
 }
 
-// Titik label: koordinat titik, atau titik tengah (menurut jarak) sebuah garis.
-function anchorOf(geometry) {
-    if (geometry.type === "Point") return geometry.coordinates;
-    const c = geometry.coordinates;
-    const seg = c.slice(1).map((q, i) => Math.hypot(q[0] - c[i][0], q[1] - c[i][1]));
-    let rest = seg.reduce((a, b) => a + b, 0) / 2;
-    for (let i = 0; i < seg.length; i++) {
-        if (rest <= seg[i]) {
-            const t = rest / seg[i];
-            return [c[i][0] + t * (c[i + 1][0] - c[i][0]), c[i][1] + t * (c[i + 1][1] - c[i][1])];
-        }
-        rest -= seg[i];
-    }
-    return c[c.length - 1];
-}
-
-// Label HTML untuk lapisan yang punya `tag`; dicabut dan dipasang ulang bersama lapisannya.
-let labelMarkers = [];
-
+// Semua lapisan yang datanya ada digambar sebagai lapisan bernama (nama = key); centang di
+// legenda hanya menampilkan/menyembunyikan. Digambar ulang saat data dibuka, lembar anotasi
+// diganti, atau peta dasar diganti (gaya garis terang/gelap).
 function drawLayers() {
     clearMap(MAP_ID);
-    labelMarkers.forEach(marker => marker.remove());
-    labelMarkers = [];
-    availableLayers().filter(layer => state.visible.has(layer.key)).forEach(layer => {
+    availableLayers().forEach((layer, order) => {
         const source = layer.source === "points" ? pointData() : state.data[layer.source];
         const pick = layer.source === "points" ? source : features(source, layer.match);
-        const popup = layer.popup === undefined ? popupContent : layer.popup;
-        addGeoJSON(MAP_ID, pick, { style: layer.style, popup });
-        if (layer.tag) {
-            pick.features.forEach(f => {
-                const text = layer.tag(f);
-                if (!text) return;
-                const tag = document.createElement("div");
-                tag.className = layer.tagClass || (f.geometry.type === "Point" ? "itc-tag" : "itc-tag zone");
-                tag.textContent = text;
-                labelMarkers.push(addMarker(MAP_ID, anchorOf(f.geometry), {
-                    element: tag, anchor: layer.tagClass || f.geometry.type !== "Point" ? "center" : "bottom",
-                    title: f.properties.label || f.properties.name, popup: popupContent(f)
-                }));
-            });
-        }
+        addGeoJSON(MAP_ID, pick, {
+            name: layer.key, order, visible: state.visible.has(layer.key),
+            style: layer.style, popup: popupContent, tooltip: f => f.properties.name || null,
+            label: layer.text, labelOptions: layer.labelOptions, renderer: layer.renderer, minZoom: layer.minZoom
+        });
     });
 }
 
@@ -446,26 +433,32 @@ function drawMarkers() {
 
 function build() {
     const base = BASEMAPS[state.basemap];
-    removeMap(MAP_ID);
-    createMap(MAP_ID, {
-        tiles: base.tiles,
-        labels: base.labels,
-        attribution: base.attribution,
-        maxZoom: base.maxZoom,
-        maxNativeZoom: base.maxNativeZoom,
-        center: [125.905, -9.04],
-        zoom: 13
+    createMap(MAP_ID, { ...base, center: [125.905, -9.04], zoom: 13 });
+    addBasemapControl(MAP_ID, Object.values(BASEMAPS), {
+        selected: base.name, title: "Basemap", collapsed: true,
+        onChange: chosen => {
+            state.basemap = Object.keys(BASEMAPS).find(key => BASEMAPS[key] === chosen);
+            try { localStorage.setItem(BASEMAP_KEY, state.basemap); } catch { /* tidak disimpan */ }
+            drawLayers();
+        }
     });
+    addFullscreenButton(MAP_ID, "top-left");
+    addMeasureControl(MAP_ID, { corner: "top-left" });
     addScaleBar(MAP_ID, "bottom-right");
-    addMapControl(MAP_ID, basemapControl(), "top-right");
+    addCoordinateControl(MAP_ID, { corner: "bottom-left", format: coordinateText });
     drawLayers();
     drawMarkers();
-    if (state.view) setMapView(MAP_ID, state.view.center, Math.min(state.view.zoom, base.maxZoom));
-    else fitTo("corridor");
+    fitTo("corridor");
 }
 
-// Paskan tampilan ke data, dengan bbox dilebarkan ke arah panel legenda (kiri di layar
-// lebar, bawah di ponsel) supaya datanya tidak tertutup panel.
+// Koordinat di bawah kursor: WGS84 dan grid CAD Rev.14 (X, Y meter, seperti di DWG).
+function coordinateText([lng, lat]) {
+    const [x, y] = CAD_GRID.inverse([lng, lat]);
+    return `${lat.toFixed(6)}, ${lng.toFixed(6)} · CAD X ${x.toFixed(1)}, Y ${y.toFixed(1)}`;
+}
+
+// Paskan tampilan ke data, dengan padding di sisi panel legenda (kiri di layar lebar,
+// bawah di ponsel) supaya datanya tidak tertutup panel.
 function fitTo(target) {
     const data = target === "region" && state.data.reference
         ? features(state.data.reference, f => f.properties.kind.startsWith("ref-nperf"))
@@ -478,12 +471,12 @@ function fitTo(target) {
             ...state.data.masterplan.features.filter(f => f.properties.kind === "mp-boundary"),
             ...state.data.power.features.filter(f => f.properties.kind === "transformer")] }
         : state.data.corridor;
-    const [minLng, minLat, maxLng, maxLat] = getBBox(data);
+    const panel = document.getElementById("panel").getBoundingClientRect();
     const narrow = window.matchMedia("(max-width: 640px)").matches;
-    const bbox = narrow
-        ? [minLng, minLat - (maxLat - minLat) * 0.12, maxLng, maxLat]
-        : [minLng - (maxLng - minLng) * 0.45, minLat, maxLng, maxLat];
-    fitMap(MAP_ID, bbox, 40);
+    const padding = narrow
+        ? { top: 40, right: 24, bottom: Math.min(panel.height, window.innerHeight / 2) + 24, left: 24 }
+        : { top: 40, right: 40, bottom: 40, left: panel.right + 24 };
+    fitMap(MAP_ID, getBBox(data), padding);
 }
 
 function savedBasemap() {
@@ -492,45 +485,6 @@ function savedBasemap() {
         if (BASEMAPS[key]) return key;
     } catch { /* penyimpanan diblokir: pakai bawaan */ }
     return "hybrid";
-}
-
-// Tombol peta dasar di kanan atas peta: klik untuk membuka daftar, pilih untuk mengganti.
-// Peta dibuat ulang (build) saat diganti, jadi kontrol ini juga dibuat ulang tiap build.
-function basemapControl() {
-    const box = document.createElement("div");
-    box.className = "basemap-control";
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.className = "basemap-toggle";
-    toggle.title = "Basemap";
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8.5 12 14l10-5.5L12 3Z"/>'
-        + '<path d="m2 12.5 10 5.5 10-5.5M2 16.5 12 22l10-5.5"/></svg>';
-    toggle.append(BASEMAPS[state.basemap].name);
-    const menu = document.createElement("div");
-    menu.className = "basemap-menu";
-    menu.hidden = true;
-    Object.entries(BASEMAPS).forEach(([key, base]) => {
-        const label = document.createElement("label");
-        const input = document.createElement("input");
-        input.type = "radio";
-        input.name = "basemap";
-        input.checked = key === state.basemap;
-        input.addEventListener("change", () => {
-            state.view = getMapView(MAP_ID);
-            state.basemap = key;
-            try { localStorage.setItem(BASEMAP_KEY, key); } catch { /* tidak disimpan */ }
-            build();
-        });
-        label.append(input, base.name);
-        menu.append(label);
-    });
-    toggle.addEventListener("click", () => {
-        menu.hidden = !menu.hidden;
-        toggle.setAttribute("aria-expanded", String(!menu.hidden));
-    });
-    box.append(toggle, menu);
-    return box;
 }
 
 function bindUI() {
@@ -542,6 +496,8 @@ function bindUI() {
     });
     document.querySelectorAll("[data-fit]").forEach(button =>
         button.addEventListener("click", () => fitTo(button.dataset.fit)));
+    document.getElementById("exportPng").addEventListener("click", () =>
+        downloadMapImage(MAP_ID, "weberek-map.png"));
     const panel = document.getElementById("panel");
     const toggle = document.getElementById("panelToggle");
     // Di ponsel panel mulai tertutup supaya petanya langsung terlihat.
@@ -592,8 +548,7 @@ async function openSecure(password, remember) {
     document.body.classList.add("unlocked");
     renderTotals();
     renderLegend();
-    state.view = null;
-    build();
+    drawLayers();
     fitTo("site");
 }
 

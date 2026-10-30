@@ -2,8 +2,8 @@
 
 Weberek Maps: peta pendukung paket ITC (Information Technology, Communications &
 Electronic Security) DED Weberek Correctional Building, Manufahi, Timor-Leste.
-Dibangun dengan [CrootJS](https://croot.js.org) (`map.js`, `mapmarker.js`,
-`mapcontrol.js` v0.0.16 dari jsDelivr): situs statis, tanpa build step.
+Dibangun dengan [CrootJS](https://croot.js.org) (`map.js`, `mapmarker.js`, `mapcontrol.js`,
+`maptools.js`, `geomeasure.js` v0.0.18 dari jsDelivr): situs statis, tanpa build step.
 
 ## Peta
 
