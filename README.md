@@ -38,6 +38,7 @@ tools/build_masterplan.py  DXF Rev.14 -> GeoJSON master plan + titik ITC (butuh 
 tools/build_itc_design.py  lapisan desain ITC dari NetDet build_overlay_dwg.py (tanpa ezdxf)
 tools/build_dwg_overlays.py  vektor DWG overlay: denah blok sel + 20 kamera (VSS-002) dan anotasi 6 lembar situs (butuh ezdxf)
 tools/build_reference.py   rujukan: jalur fiber/microwave ITU (WFS) + catatan cakupan nPerf (tanpa tile nPerf)
+tools/build_topo.py        kontur survei 1 m dari layer 1 KONTUR Master Plan Rev.14 (butuh ezdxf)
 tools/encrypt_data.py      private/*.geojson -> data/secure/weberek.bin
 ```
 
@@ -89,6 +90,10 @@ Georeferensi Master Plan Rev.14 (27 Okt 2026):
   geoid +41,5 m (EGM2008).
 - Hipotesis "BM = UTM 51S terpotong" (E 8387 → 818387) ditolak, karena titik
   CPT/GRS lapangan jadi jatuh di luar persil.
+- Kontur survei (layer 1 KONTUR, interval 1 m, El. +159 s.d. +176) ditampilkan
+  sebagai lapisan `contours` (default mati). Karena Z = tinggi elipsoid, tinggi
+  di atas muka laut kira-kira El. − 41,5 m (situs ±118–135 m dpl); basemap Topo
+  (OpenTopoMap, SRTM) memakai muka laut.
 - Usulan: satu sesi GNSS pada BM1–BM3 untuk mengikat grid ke UTM 51S dan
   menghapus ketidakpastian ±50 m.
 

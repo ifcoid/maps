@@ -10,7 +10,7 @@ const MAP_ID = "map";
 const SECURE_URL = "../data/secure/weberek.bin";
 const SECURE_SOURCES = {
     "weberek-masterplan-rev14": "masterplan", "weberek-itc": "itc", "weberek-itc-design": "design",
-    "weberek-dwg-overlays": "dwg", "weberek-reference": "reference"
+    "weberek-dwg-overlays": "dwg", "weberek-reference": "reference", "weberek-topo": "topo"
 };
 const PASSWORD_KEY = "weberek-maps-password";
 const BASEMAPS = {
@@ -20,7 +20,13 @@ const BASEMAPS = {
         maxZoom: 21,
         maxNativeZoom: 18  // citra Esri di lokasi ini hanya sampai z18; di atasnya diperbesar
     },
-    osm: { tiles: true, maxZoom: 21, maxNativeZoom: 19 }
+    osm: { tiles: true, maxZoom: 21, maxNativeZoom: 19 },
+    topo: {
+        tiles: "https://tile.opentopomap.org/{z}/{x}/{y}.png",
+        attribution: "Map data © OpenStreetMap contributors, SRTM · Map style © OpenTopoMap (CC-BY-SA)",
+        maxZoom: 21,
+        maxNativeZoom: 17  // OpenTopoMap hanya sampai z17
+    }
 };
 
 // Urutan lapisan = urutan gambar (yang belakangan di atas). `match` memilih fitur dari data.
@@ -36,6 +42,10 @@ const LAYERS = [
     { key: "transmission", label: "EDTL transmission line", note: "OSM, context", source: "power",
       match: f => f.properties.kind === "transmission",
       style: { stroke: "#a855f7", strokeWidth: 2, strokeOpacity: 0.8 }, swatch: "#a855f7" },
+    { key: "contours", label: "Survey contours, 1 m", note: "El. +159 to +176 (GNSS) · ±0.000 = El. +160.00", source: "topo",
+      match: f => f.properties.kind === "topo-contour",
+      style: f => contourStyle(f), swatch: "#d97706", off: true,
+      tag: f => f.properties.tag, tagClass: "contour-tag" },
     { key: "agri", label: "Agricultural area (58 ha)", note: "Master Plan Rev.14", source: "masterplan",
       match: f => f.properties.kind === "mp-agri",
       style: { stroke: "#fb923c", strokeWidth: 2, fill: "#fb923c", fillOpacity: 0.06 }, swatch: "#fb923c", area: true },
@@ -144,6 +154,13 @@ function cellBlockStyle(feature) {
     if (kind === "itc-cam") return { radius: 4, fill: CAM_COLORS.block, stroke: "#0f172a", strokeWidth: 1.5 };
     if (kind === "cb-fov") return { stroke: "#facc15", strokeWidth: 1, fill: "#facc15", fillOpacity: 0.28 };
     return { stroke: state.basemap === "satellite" ? "#f8fafc" : "#334155", strokeWidth: 0.7, strokeOpacity: 0.85 };
+}
+
+// Kontur survei: kontur indeks (tiap 5 m) lebih tebal; terang di citra satelit.
+function contourStyle(feature) {
+    const index = feature.properties.index;
+    const color = state.basemap === "satellite" ? (index ? "#fcd34d" : "#fde68a") : (index ? "#92400e" : "#b45309");
+    return { stroke: color, strokeWidth: index ? 1.8 : 0.9, strokeOpacity: index ? 0.95 : 0.7 };
 }
 
 const DAS_STYLES = {
