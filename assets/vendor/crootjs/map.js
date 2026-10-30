@@ -348,6 +348,17 @@ function addTile(state, z, x, y, key) {
     img.src = state.tileURL.replace("{z}", z).replace("{x}", x).replace("{y}", y);
     state.tiles.set(key, tile);
     state.tilePane.appendChild(img);
+    // Tile label (transparan) di atas tile dasar, posisinya ikut tile dasar.
+    tile.labels = state.labelURLs.map(url => {
+        const label = document.createElement("img");
+        label.className = "crootjs-map-tile";
+        label.alt = "";
+        label.draggable = false;
+        label.onload = () => label.classList.add("crootjs-map-tile-loaded");
+        label.src = url.replace("{z}", z).replace("{x}", x).replace("{y}", y);
+        state.tilePane.appendChild(label);
+        return label;
+    });
 }
 
 function renderTiles(state) {
@@ -390,6 +401,7 @@ function renderTiles(state) {
             tile.img.onload = null;
             tile.img.onerror = null;
             tile.img.remove();
+            tile.labels.forEach(label => label.remove());
             state.tiles.delete(key);
             return;
         }
@@ -402,6 +414,10 @@ function renderTiles(state) {
         tile.img.style.width = (Math.round(x + tileSize) - px) + "px";
         tile.img.style.height = (Math.round(y + tileSize) - py) + "px";
         tile.img.style.zIndex = tile.z === tileZoom ? 1 : 0;
+        tile.labels.forEach(label => {
+            label.style.cssText = tile.img.style.cssText;
+            label.style.zIndex = tile.z === tileZoom ? 3 : 2;
+        });
     });
 }
 
@@ -797,6 +813,9 @@ function addAttribution(state, text) {
 //               [Tambahan ifcoid/maps, belum ada di crootjs/lib 0.0.16.]
 //   tiles       pola URL tile raster dengan {z}, {x}, {y}. Default: OpenStreetMap.
 //               false = tanpa peta dasar, hanya data yang digambar.
+//   labels      pola URL (atau daftar pola) tile label transparan yang digambar di atas
+//               `tiles`, misalnya nama tempat dan jalan untuk citra satelit (hybrid).
+//               [Tambahan ifcoid/maps, belum ada di crootjs/lib 0.0.16.]
 //   attribution teks atribusi untuk `tiles` buatan sendiri
 //   zoomControl false = tanpa tombol +/-
 //   scrollZoom  false = roda mouse tetap menggulung halaman, tidak men-zoom peta
@@ -845,6 +864,7 @@ export function createMap(id, options = {}) {
         maxNativeZoom: Number.isFinite(options.maxNativeZoom) ? options.maxNativeZoom
             : (Number.isFinite(options.maxZoom) ? options.maxZoom : 19),
         tileURL: useDefaultTiles ? DEFAULT_TILES : (options.tiles || null),
+        labelURLs: [].concat(options.labels || []),
         scrollZoom: options.scrollZoom !== false,
         tiles: new Map(),
         layers: [],

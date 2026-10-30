@@ -1,5 +1,5 @@
 import {
-    createMap, removeMap, addGeoJSON, clearMap, fitMap, getMapView, setMapView, getGeoJSON, getBBox
+    createMap, removeMap, addGeoJSON, clearMap, fitMap, getMapView, setMapView, getGeoJSON, getBBox, addMapControl
 } from "../assets/vendor/crootjs/map.js";
 import { addMarker } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.16/mapmarker.min.js";
 import { addScaleBar } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.16/mapcontrol.min.js";
@@ -13,21 +13,40 @@ const SECURE_SOURCES = {
     "weberek-dwg-overlays": "dwg", "weberek-reference": "reference", "weberek-topo": "topo"
 };
 const PASSWORD_KEY = "weberek-maps-password";
+// Pilihan peta dasar (kontrol kanan atas). `imagery` = citra foto, garis data digambar terang.
+// Tile ArcGIS di lokasi ini: citra sampai z18, peta jalan/topografi sampai z17; di atasnya
+// tile level itu diperbesar (maxNativeZoom).
+const esri = service => `https://server.arcgisonline.com/ArcGIS/rest/services/${service}/MapServer/tile/{z}/{y}/{x}`;
 const BASEMAPS = {
-    satellite: {
-        tiles: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        attribution: "Imagery © Esri, Maxar, Earthstar Geographics · Data © OpenStreetMap contributors",
-        maxZoom: 21,
-        maxNativeZoom: 18  // citra Esri di lokasi ini hanya sampai z18; di atasnya diperbesar
+    hybrid: {
+        name: "ArcGIS Hybrid", tiles: esri("World_Imagery"), imagery: true,
+        labels: [esri("Reference/World_Transportation"), esri("Reference/World_Boundaries_and_Places")],
+        attribution: "Imagery and labels © Esri, Maxar, Earthstar Geographics · Data © OpenStreetMap contributors",
+        maxZoom: 21, maxNativeZoom: 18
     },
-    osm: { tiles: true, maxZoom: 21, maxNativeZoom: 19 },
+    satellite: {
+        name: "ArcGIS Imagery", tiles: esri("World_Imagery"), imagery: true,
+        attribution: "Imagery © Esri, Maxar, Earthstar Geographics · Data © OpenStreetMap contributors",
+        maxZoom: 21, maxNativeZoom: 18
+    },
+    streets: {
+        name: "ArcGIS Streets", tiles: esri("World_Street_Map"),
+        attribution: "Map © Esri, HERE, Garmin, OpenStreetMap contributors",
+        maxZoom: 21, maxNativeZoom: 17
+    },
+    topographic: {
+        name: "ArcGIS Topographic", tiles: esri("World_Topo_Map"),
+        attribution: "Map © Esri, HERE, Garmin, USGS, OpenStreetMap contributors",
+        maxZoom: 21, maxNativeZoom: 17
+    },
+    osm: { name: "OpenStreetMap", tiles: true, maxZoom: 21, maxNativeZoom: 19 },
     topo: {
-        tiles: "https://tile.opentopomap.org/{z}/{x}/{y}.png",
+        name: "OpenTopoMap", tiles: "https://tile.opentopomap.org/{z}/{x}/{y}.png",
         attribution: "Map data © OpenStreetMap contributors, SRTM · Map style © OpenTopoMap (CC-BY-SA)",
-        maxZoom: 21,
-        maxNativeZoom: 17  // OpenTopoMap hanya sampai z17
+        maxZoom: 21, maxNativeZoom: 17
     }
 };
+const BASEMAP_KEY = "weberek-maps-basemap";
 
 // Urutan lapisan = urutan gambar (yang belakangan di atas). `match` memilih fitur dari data.
 const LAYERS = [
@@ -153,13 +172,13 @@ function cellBlockStyle(feature) {
     const kind = feature.properties.kind;
     if (kind === "itc-cam") return { radius: 4, fill: CAM_COLORS.block, stroke: "#0f172a", strokeWidth: 1.5 };
     if (kind === "cb-fov") return { stroke: "#facc15", strokeWidth: 1, fill: "#facc15", fillOpacity: 0.28 };
-    return { stroke: state.basemap === "satellite" ? "#f8fafc" : "#334155", strokeWidth: 0.7, strokeOpacity: 0.85 };
+    return { stroke: BASEMAPS[state.basemap].imagery ? "#f8fafc" : "#334155", strokeWidth: 0.7, strokeOpacity: 0.85 };
 }
 
 // Kontur survei: kontur indeks (tiap 5 m) lebih tebal; terang di citra satelit.
 function contourStyle(feature) {
     const index = feature.properties.index;
-    const color = state.basemap === "satellite" ? (index ? "#fcd34d" : "#fde68a") : (index ? "#92400e" : "#b45309");
+    const color = BASEMAPS[state.basemap].imagery ? (index ? "#fcd34d" : "#fde68a") : (index ? "#92400e" : "#b45309");
     return { stroke: color, strokeWidth: index ? 1.8 : 0.9, strokeOpacity: index ? 0.95 : 0.7 };
 }
 
@@ -191,7 +210,7 @@ function gradeStyle(feature) {
 
 // Garis layout master plan: terang di atas citra satelit, gelap di atas peta jalan.
 function layoutStyle(feature) {
-    const light = state.basemap === "satellite";
+    const light = BASEMAPS[state.basemap].imagery;
     const kind = feature.properties.kind;
     if (kind === "mp-existing") return { stroke: "#f97316", strokeWidth: 2.5, fill: "#f97316", fillOpacity: 0.35 };
     if (kind === "mp-survey") return { stroke: light ? "#93c5fd" : "#2563eb", strokeWidth: 1.5, strokeOpacity: 0.9 };
@@ -199,7 +218,7 @@ function layoutStyle(feature) {
     return { stroke: light ? "#e2e8f0" : "#64748b", strokeWidth: 0.8, strokeOpacity: 0.75 };
 }
 
-const state = { sheet: "", basemap: "satellite", visible: new Set(LAYERS.filter(l => !l.off).map(l => l.key)), data: {}, view: null };
+const state = { sheet: "", basemap: savedBasemap(), visible: new Set(LAYERS.filter(l => !l.off).map(l => l.key)), data: {}, view: null };
 
 function km(m) {
     return (m / 1000).toFixed(1);
@@ -430,6 +449,7 @@ function build() {
     removeMap(MAP_ID);
     createMap(MAP_ID, {
         tiles: base.tiles,
+        labels: base.labels,
         attribution: base.attribution,
         maxZoom: base.maxZoom,
         maxNativeZoom: base.maxNativeZoom,
@@ -437,6 +457,7 @@ function build() {
         zoom: 13
     });
     addScaleBar(MAP_ID, "bottom-right");
+    addMapControl(MAP_ID, basemapControl(), "top-right");
     drawLayers();
     drawMarkers();
     if (state.view) setMapView(MAP_ID, state.view.center, Math.min(state.view.zoom, base.maxZoom));
@@ -465,17 +486,54 @@ function fitTo(target) {
     fitMap(MAP_ID, bbox, 40);
 }
 
-function bindUI() {
-    document.querySelectorAll("[data-basemap]").forEach(button => {
-        button.addEventListener("click", () => {
-            if (state.basemap === button.dataset.basemap) return;
+function savedBasemap() {
+    try {
+        const key = localStorage.getItem(BASEMAP_KEY);
+        if (BASEMAPS[key]) return key;
+    } catch { /* penyimpanan diblokir: pakai bawaan */ }
+    return "hybrid";
+}
+
+// Tombol peta dasar di kanan atas peta: klik untuk membuka daftar, pilih untuk mengganti.
+// Peta dibuat ulang (build) saat diganti, jadi kontrol ini juga dibuat ulang tiap build.
+function basemapControl() {
+    const box = document.createElement("div");
+    box.className = "basemap-control";
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "basemap-toggle";
+    toggle.title = "Basemap";
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8.5 12 14l10-5.5L12 3Z"/>'
+        + '<path d="m2 12.5 10 5.5 10-5.5M2 16.5 12 22l10-5.5"/></svg>';
+    toggle.append(BASEMAPS[state.basemap].name);
+    const menu = document.createElement("div");
+    menu.className = "basemap-menu";
+    menu.hidden = true;
+    Object.entries(BASEMAPS).forEach(([key, base]) => {
+        const label = document.createElement("label");
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = "basemap";
+        input.checked = key === state.basemap;
+        input.addEventListener("change", () => {
             state.view = getMapView(MAP_ID);
-            state.basemap = button.dataset.basemap;
-            document.querySelectorAll("[data-basemap]").forEach(b =>
-                b.setAttribute("aria-pressed", String(b === button)));
+            state.basemap = key;
+            try { localStorage.setItem(BASEMAP_KEY, key); } catch { /* tidak disimpan */ }
             build();
         });
+        label.append(input, base.name);
+        menu.append(label);
     });
+    toggle.addEventListener("click", () => {
+        menu.hidden = !menu.hidden;
+        toggle.setAttribute("aria-expanded", String(!menu.hidden));
+    });
+    box.append(toggle, menu);
+    return box;
+}
+
+function bindUI() {
     document.getElementById("sheetNotes").addEventListener("change", event => {
         state.sheet = event.target.value;
         state.visible.add("notes");

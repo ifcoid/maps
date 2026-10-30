@@ -92,8 +92,8 @@ Georeferensi Master Plan Rev.14 (27 Okt 2026):
   CPT/GRS lapangan jadi jatuh di luar persil.
 - Kontur survei (layer 1 KONTUR, interval 1 m, El. +159 s.d. +176) ditampilkan
   sebagai lapisan `contours` (default mati). Karena Z = tinggi elipsoid, tinggi
-  di atas muka laut kira-kira El. − 41,5 m (situs ±118–135 m dpl); basemap Topo
-  (OpenTopoMap, SRTM) memakai muka laut.
+  di atas muka laut kira-kira El. − 41,5 m (situs ±118–135 m dpl); basemap OpenTopoMap
+  (SRTM) memakai muka laut.
 - Usulan: satu sesi GNSS pada BM1–BM3 untuk mengikat grid ke UTM 51S dan
   menghapus ketidakpastian ±50 m.
 
