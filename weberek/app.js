@@ -1,12 +1,13 @@
 import {
     createMap, addGeoJSON, clearMap, fitMap, showLayer, hideLayer, getGeoJSON, getBBox
-} from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.21/map.min.js";
-import { addMarker } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.21/mapmarker.min.js";
+} from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.22/map.min.js";
+import { addMarker } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.22/mapmarker.min.js";
 import {
     addScaleBar, addBasemapControl, addCoordinateControl, addFullscreenButton
-} from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.21/mapcontrol.min.js";
-import { addMeasureControl, downloadMapImage } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.21/maptools.min.js";
-import { createAffineTransform } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.21/geomeasure.min.js";
+} from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.22/mapcontrol.min.js";
+import { addMeasureControl, downloadMapImage } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.22/maptools.min.js";
+import { createAffineTransform } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.22/geomeasure.min.js";
+import { addGridMap } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.22/mapheat.min.js";
 import { unlock } from "./secure.js";
 
 const MAP_ID = "map";
@@ -72,6 +73,9 @@ const LAYERS = [
           : { radius: 7, fill: "#fbbf24", stroke: "#0f172a", strokeWidth: 2 },
       swatch: "#fbbf24", area: true, text: f => f.properties.kind === "ref-nperf" ? "nPerf" : null,
       labelOptions: { className: "ref-tag", overlap: true } },
+    // bukan GeoJSON: petak cakupan (addGridMap) yang dihitung di browser dari posisi repeater 1
+    { key: "dmr", label: "DMR radio coverage, portable (prediction)", note: "margin over −107 dBm · Hata rural, flat terrain · App. B.1", source: "design",
+      grid: true, ramp: "linear-gradient(90deg, #d7191c, #fdae61, #ffffbf, #a6d96a, #1a9641)", area: true, off: true },
     { key: "itu", label: "Fiber & microwave routes (ITU, reference)", note: "operator-reported, rough; pink = fiber, grey = microwave", source: "reference",
       match: f => f.properties.kind.startsWith("ref-itu"),
       style: f => ituStyle(f), swatch: "#ec4899" },
@@ -238,7 +242,100 @@ function layoutStyle(feature) {
     return { stroke: light ? "#e2e8f0" : "#64748b", strokeWidth: 0.8, strokeOpacity: 0.75 };
 }
 
-const state = { sheet: "", basemap: savedBasemap(), visible: new Set(LAYERS.filter(l => !l.off).map(l => l.key)), data: {} };
+// Link budget DMR dari Laporan Interim Rev.1, Appendix B.1: repeater 1 di menara T5, antena 15 m,
+// UHF 410 MHz, Okumura-Hata open/rural, ambang desain -107 dBm (sensitivitas -119 + fade 12 dB).
+// Repeater: 25 W - feeder 3 dB + 6 dBi = EIRP 47 dBm; portable 4 W/0 dBi, mobile 25 W/+3 dBi.
+// Medan dianggap datar (perbukitan tidak dimodelkan), sama dengan perhitungan di laporan.
+const DMR = {
+    mhz: 410, mastM: 15, handsetM: 1.5, eirpDbm: 47, rxGainDb: 3, portableDbm: 36, mobileDbm: 44,
+    mobileGainDb: 3, thresholdDbm: -107, radiusKm: 12, cellM: 250
+};
+const DMR_BREAKS = [
+    { value: -Infinity, color: "#d7191c", label: "below −107 dBm (no service)" },
+    { value: 0, color: "#fdae61", label: "0–10 dB" },
+    { value: 10, color: "#ffffbf", label: "10–20 dB" },
+    { value: 20, color: "#a6d96a", label: "20–30 dB" },
+    { value: 30, color: "#1a9641", label: "≥ 30 dB" }
+];
+
+function hataRural(km) {
+    const lf = Math.log10(DMR.mhz);
+    const hb = Math.log10(DMR.mastM);
+    const mobile = (1.1 * lf - 0.7) * DMR.handsetM - (1.56 * lf - 0.8);
+    // di bawah 0,1 km rumus Hata tidak berlaku; laporan pun memakai ekstrapolasinya di 0,6 km
+    const urban = 69.55 + 26.16 * lf - 13.82 * hb - mobile + (44.9 - 6.55 * hb) * Math.log10(Math.max(km, 0.1));
+    return urban - 4.78 * lf * lf + 18.33 * lf - 40.94;
+}
+
+// Level terima (dBm) di jarak km dan margin jalur terlemah di atas ambang desain.
+function dmrBudget(km) {
+    const loss = hataRural(km);
+    const dl = DMR.eirpDbm - loss;
+    const portableUl = DMR.portableDbm - loss + DMR.rxGainDb;
+    const mobileDl = dl + DMR.mobileGainDb;
+    const mobileUl = DMR.mobileDbm + DMR.mobileGainDb - loss + DMR.rxGainDb;
+    return {
+        loss, dl, portableUl, mobileDl, mobileUl,
+        portable: Math.min(dl, portableUl) - DMR.thresholdDbm,
+        mobile: Math.min(mobileDl, mobileUl) - DMR.thresholdDbm
+    };
+}
+
+function distanceKm([lng1, lat1], [lng2, lat2]) {
+    const x = (lng2 - lng1) * Math.cos((lat1 + lat2) / 2 * Math.PI / 180);
+    return Math.hypot(x, lat2 - lat1) * 111.32;
+}
+
+// Titik [lng, lat, margin portable] tiap setengah petak dalam radius DMR.radiusKm dari repeater,
+// jadi tiap petak berisi beberapa titik dan warnanya rata-ratanya.
+function dmrPoints(origin) {
+    const step = DMR.cellM / 2000;
+    const reach = Math.ceil(DMR.radiusKm / step);
+    const perLng = 111.32 * Math.cos(origin[1] * Math.PI / 180);
+    const points = [];
+    for (let row = -reach; row <= reach; row++) {
+        for (let column = -reach; column <= reach; column++) {
+            const km = Math.hypot(row, column) * step;
+            if (km > DMR.radiusKm) continue;
+            points.push([origin[0] + column * step / perLng, origin[1] + row * step / 111.32, dmrBudget(km).portable]);
+        }
+    }
+    return points;
+}
+
+function dmrPopup(origin) {
+    return cell => {
+        const km = distanceKm(origin, cell.center);
+        const b = dmrBudget(km);
+        const dbm = value => `${value.toFixed(1).replace("-", "−")} dBm`;
+        const margin = value => `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(0)} dB`;
+        return popupContent({ properties: {
+            name: "DMR coverage (prediction)", label: `${km.toFixed(1)} km from repeater 1 (T5)`,
+            detail: `Portable 4 W: downlink ${dbm(b.dl)}, uplink ${dbm(b.portableUl)}, margin ${margin(b.portable)}. ` +
+                `Vehicle mobile 25 W: margin ${margin(b.mobile)}. Hata path loss ${b.loss.toFixed(1)} dB.`,
+            note: "Outdoor, flat terrain. Inside the blocks subtract 15 dB, under crops 6 dB. " +
+                "Hills are not modelled: verify by DTM prediction and a commissioning drive test.",
+            source: "ITC Interim Report Rev.1, Appendix B.1 (link budget); ITC-COM-001"
+        } });
+    };
+}
+
+// Petak cakupan dibuat sekali setelah data desain terbuka; centang legenda hanya show/hide.
+function addCoverage() {
+    if (state.grids.dmr || !state.data.design) return;
+    const repeater = state.data.design.features.find(f =>
+        f.properties.kind === "itc-radio" && f.properties.name.includes("primary"));
+    if (!repeater) return;
+    const origin = repeater.geometry.coordinates;
+    const grid = addGridMap(MAP_ID, dmrPoints(origin), {
+        cellMeters: DMR.cellM, breaks: DMR_BREAKS, opacity: 0.55, popup: dmrPopup(origin),
+        legend: { title: "DMR portable margin", corner: "bottom-right" }
+    });
+    if (!state.visible.has("dmr")) grid.hide();
+    state.grids.dmr = grid;
+}
+
+const state = { grids: {}, sheet: "", basemap: savedBasemap(), visible: new Set(LAYERS.filter(l => !l.off).map(l => l.key)), data: {} };
 
 function km(m) {
     return (m / 1000).toFixed(1);
@@ -368,12 +465,17 @@ function renderLegend() {
         input.addEventListener("change", () => {
             if (input.checked) state.visible.add(layer.key);
             else state.visible.delete(layer.key);
-            (input.checked ? showLayer : hideLayer)(MAP_ID, layer.key);
+            const grid = state.grids[layer.key];
+            if (grid) (input.checked ? grid.show : grid.hide)();
+            else (input.checked ? showLayer : hideLayer)(MAP_ID, layer.key);
         });
         const swatch = document.createElement("span");
         swatch.className = "swatch";
         const mark = document.createElement("i");
-        if (layer.area) {
+        if (layer.ramp) {
+            mark.className = "area";
+            mark.style.background = layer.ramp;
+        } else if (layer.area) {
             mark.className = "area";
             mark.style.borderColor = layer.swatch;
             mark.style.background = layer.swatch + "33";
@@ -401,7 +503,7 @@ function renderLegend() {
 // diganti, atau peta dasar diganti (gaya garis terang/gelap).
 function drawLayers() {
     clearMap(MAP_ID);
-    availableLayers().forEach((layer, order) => {
+    availableLayers().filter(layer => !layer.grid).forEach((layer, order) => {
         const source = layer.source === "points" ? pointData() : state.data[layer.source];
         const pick = layer.source === "points" ? source : features(source, layer.match);
         addGeoJSON(MAP_ID, pick, {
@@ -578,6 +680,7 @@ async function openSecure(password, remember) {
     renderTotals();
     renderLegend();
     drawLayers();
+    addCoverage();
     fitTo("site");
 }
 
