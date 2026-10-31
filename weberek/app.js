@@ -1,9 +1,9 @@
 import {
-    createMap, addGeoJSON, clearMap, fitMap, showLayer, hideLayer, getGeoJSON, getBBox
+    createMap, addGeoJSON, clearMap, fitMap, showLayer, hideLayer, getGeoJSON, getBBox, addMapControl, setTiles
 } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.19/map.min.js";
 import { addMarker } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.19/mapmarker.min.js";
 import {
-    addScaleBar, addBasemapControl, addCoordinateControl, addFullscreenButton
+    addScaleBar, addCoordinateControl, addFullscreenButton
 } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.19/mapcontrol.min.js";
 import { addMeasureControl, downloadMapImage } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.19/maptools.min.js";
 import { createAffineTransform } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.19/geomeasure.min.js";
@@ -43,7 +43,7 @@ const BASEMAPS = {
         attribution: "Map © Esri, HERE, Garmin, USGS, OpenStreetMap contributors",
         maxZoom: 21, maxNativeZoom: 17
     },
-    osm: { name: "OpenStreetMap", tiles: true, maxZoom: 21, maxNativeZoom: 19 },
+    osm: { name: "OpenStreetMap", tiles: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", maxZoom: 21, maxNativeZoom: 19 },
     topo: {
         name: "OpenTopoMap", tiles: "https://tile.opentopomap.org/{z}/{x}/{y}.png",
         attribution: "Map data © OpenStreetMap contributors, SRTM · Map style © OpenTopoMap (CC-BY-SA)",
@@ -51,6 +51,8 @@ const BASEMAPS = {
     }
 };
 const BASEMAP_KEY = "weberek-maps-basemap";
+// Gambar kartu pemilih peta dasar: tile yang memuat situs, jadi pratinjaunya lokasi ini.
+const THUMB = { zoom: 14, center: [125.8959, -9.0140] };
 // Grid CAD Master Plan Rev.14 (m) <-> [lng, lat]: empat sudut kompleks dari
 // tools/georef_rev14.py cad_to_lonlat (rigid, +-50 m), untuk tampilan koordinat.
 const CAD_GRID = createAffineTransform(
@@ -434,14 +436,7 @@ function drawMarkers() {
 function build() {
     const base = BASEMAPS[state.basemap];
     createMap(MAP_ID, { ...base, center: [125.905, -9.04], zoom: 13 });
-    addBasemapControl(MAP_ID, Object.values(BASEMAPS), {
-        selected: base.name, title: "Basemap", collapsed: true,
-        onChange: chosen => {
-            state.basemap = Object.keys(BASEMAPS).find(key => BASEMAPS[key] === chosen);
-            try { localStorage.setItem(BASEMAP_KEY, state.basemap); } catch { /* tidak disimpan */ }
-            drawLayers();
-        }
-    });
+    addBasemapPicker();
     addFullscreenButton(MAP_ID, "top-left");
     addMeasureControl(MAP_ID, { corner: "top-left" });
     addScaleBar(MAP_ID, "bottom-right");
@@ -449,6 +444,82 @@ function build() {
     drawLayers();
     drawMarkers();
     fitTo("corridor");
+}
+
+function thumbUrl(template) {
+    const n = 2 ** THUMB.zoom, [lng, lat] = THUMB.center, rad = lat * Math.PI / 180;
+    const x = Math.floor((lng + 180) / 360 * n);
+    const y = Math.floor((1 - Math.asinh(Math.tan(rad)) / Math.PI) / 2 * n);
+    return template.replace("{z}", THUMB.zoom).replace("{x}", x).replace("{y}", y).replace("{s}", "a");
+}
+
+function basemapCard(key) {
+    const base = BASEMAPS[key];
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "basemap-card";
+    button.dataset.key = key;
+    const thumb = document.createElement("span");
+    thumb.className = "basemap-thumb";
+    // label di atas citra (Hybrid): background pertama digambar paling atas
+    thumb.style.backgroundImage = [...(base.labels || []), base.tiles].map(t => `url("${thumbUrl(t)}")`).join(", ");
+    const name = document.createElement("span");
+    name.textContent = base.name;
+    button.append(thumb, name);
+    return button;
+}
+
+// Pemilih peta dasar berupa kartu bergambar seperti di Google Maps/nPerf: kartu peta aktif
+// di kanan atas; diarahkan (mouse) atau diklik membuka kisi semua pilihan.
+function addBasemapPicker() {
+    const root = document.createElement("div");
+    root.className = "basemap-picker";
+    const toggle = basemapCard(state.basemap);
+    toggle.classList.add("basemap-toggle");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-haspopup", "true");
+    const grid = document.createElement("div");
+    grid.className = "basemap-grid";
+    grid.setAttribute("role", "group");
+    grid.setAttribute("aria-label", "Basemap");
+    const title = document.createElement("p");
+    title.textContent = "Basemap";
+    const cards = Object.keys(BASEMAPS).map(basemapCard);
+    grid.append(title, ...cards);
+    root.append(toggle, grid);
+
+    const sync = () => {
+        toggle.replaceChildren(...basemapCard(state.basemap).childNodes);
+        toggle.title = `Basemap: ${BASEMAPS[state.basemap].name}`;
+        cards.forEach(card => card.setAttribute("aria-pressed", String(card.dataset.key === state.basemap)));
+    };
+    const open = show => {
+        root.classList.toggle("open", show);
+        toggle.setAttribute("aria-expanded", String(show));
+    };
+    toggle.addEventListener("click", () => {
+        open(true);
+        grid.querySelector('[aria-pressed="true"]').focus();
+    });
+    cards.forEach(card => card.addEventListener("click", () => {
+        state.basemap = card.dataset.key;
+        try { localStorage.setItem(BASEMAP_KEY, state.basemap); } catch { /* tidak disimpan */ }
+        setTiles(MAP_ID, BASEMAPS[state.basemap].tiles, BASEMAPS[state.basemap]);
+        drawLayers();
+        sync();
+        open(false);
+        toggle.focus();
+    }));
+    if (window.matchMedia("(hover: hover)").matches) {
+        root.addEventListener("mouseenter", () => open(true));
+        root.addEventListener("mouseleave", () => open(false));
+    }
+    root.addEventListener("keydown", event => {
+        if (event.key === "Escape" && root.classList.contains("open")) { open(false); toggle.focus(); }
+    });
+    document.addEventListener("pointerdown", event => { if (!root.contains(event.target)) open(false); });
+    sync();
+    addMapControl(MAP_ID, root, "top-right");
 }
 
 // Koordinat di bawah kursor: WGS84 dan grid CAD Rev.14 (X, Y meter, seperti di DWG).
