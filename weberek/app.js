@@ -66,7 +66,9 @@ const CAD_GRID = createAffineTransform(
 const LAYERS = [
     { key: "nperf", label: "Mobile coverage notes (nPerf)", note: "no samples within 10 km; nearest signal 11.5 km · reference", source: "reference",
       match: f => f.properties.kind.startsWith("ref-nperf"),
-      style: f => f.properties.kind === "ref-nperf-ring" ? { stroke: "#fbbf24", strokeWidth: 2, strokeDasharray: "8 6", fill: "#fbbf24", fillOpacity: 0.04 }
+      // area besar (lingkaran 10 km, persil, pertanian, P1-P4) tanpa isian: hanya garis tepinya
+      // yang bisa diklik, jadi klik di dalam situs tidak memunculkan popup area itu
+      style: f => f.properties.kind === "ref-nperf-ring" ? { stroke: "#fbbf24", strokeWidth: 2, strokeDasharray: "8 6", fill: "none" }
           : { radius: 7, fill: "#fbbf24", stroke: "#0f172a", strokeWidth: 2 },
       swatch: "#fbbf24", area: true, text: f => f.properties.kind === "ref-nperf" ? "nPerf" : null,
       labelOptions: { className: "ref-tag", overlap: true } },
@@ -82,14 +84,14 @@ const LAYERS = [
       text: "tag", labelOptions: { className: "contour-tag", minZoom: 16 } },
     { key: "agri", label: "Agricultural area (58 ha)", note: "Master Plan Rev.14", source: "masterplan",
       match: f => f.properties.kind === "mp-agri",
-      style: { stroke: "#fb923c", strokeWidth: 2, fill: "#fb923c", fillOpacity: 0.06 }, swatch: "#fb923c", area: true },
+      style: { stroke: "#fb923c", strokeWidth: 2, fill: "none" }, swatch: "#fb923c", area: true },
     { key: "site", label: "Site corners P1–P4 (IR)", note: "Google Earth picks, Table 3", source: "site",
       match: f => f.properties.kind === "site",
-      style: { stroke: "#facc15", strokeWidth: 1.5, strokeDasharray: "5 4", fill: "#facc15", fillOpacity: 0.05 },
+      style: { stroke: "#facc15", strokeWidth: 1.5, strokeDasharray: "5 4", fill: "none" },
       swatch: "#facc15", area: true },
     { key: "parcel", label: "Prison parcel (25 ha)", note: "Master Plan Rev.14, georeferenced ±50 m", source: "masterplan",
       match: f => f.properties.kind === "mp-boundary",
-      style: { stroke: "#f87171", strokeWidth: 2.5, fill: "#f87171", fillOpacity: 0.08 }, swatch: "#f87171", area: true },
+      style: { stroke: "#f87171", strokeWidth: 2.5, fill: "none" }, swatch: "#f87171", area: true },
     { key: "grades", label: "Security zoning, grades 1–4", note: "SDM proposal · ITC-GEN-003", source: "design",
       match: f => f.properties.kind.startsWith("itc-grade"),
       style: f => gradeStyle(f), swatch: "#dc2626", area: true, off: true },
