@@ -1,12 +1,12 @@
 import {
     createMap, addGeoJSON, clearMap, fitMap, showLayer, hideLayer, getGeoJSON, getBBox
-} from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.20/map.min.js";
-import { addMarker } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.20/mapmarker.min.js";
+} from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.21/map.min.js";
+import { addMarker } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.21/mapmarker.min.js";
 import {
     addScaleBar, addBasemapControl, addCoordinateControl, addFullscreenButton
-} from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.20/mapcontrol.min.js";
-import { addMeasureControl, downloadMapImage } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.20/maptools.min.js";
-import { createAffineTransform } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.20/geomeasure.min.js";
+} from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.21/mapcontrol.min.js";
+import { addMeasureControl, downloadMapImage } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.21/maptools.min.js";
+import { createAffineTransform } from "https://cdn.jsdelivr.net/gh/crootjs/lib@0.0.21/geomeasure.min.js";
 import { unlock } from "./secure.js";
 
 const MAP_ID = "map";
