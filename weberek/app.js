@@ -17,6 +17,7 @@ const SECURE_SOURCES = {
     "weberek-dwg-overlays": "dwg", "weberek-reference": "reference", "weberek-topo": "topo"
 };
 const PASSWORD_KEY = "weberek-maps-password";
+const PANEL_KEY = "weberek-maps-panel";
 // Pilihan peta dasar (kontrol kanan atas). `imagery` = citra foto, garis data digambar terang.
 // Tile ArcGIS di lokasi ini: citra sampai z18, peta jalan/topografi sampai z17; di atasnya
 // tile level itu diperbesar (maxNativeZoom).
@@ -461,8 +462,8 @@ function coordinateText([lng, lat]) {
     return `${lat.toFixed(6)}, ${lng.toFixed(6)} · CAD X ${x.toFixed(1)}, Y ${y.toFixed(1)}`;
 }
 
-// Paskan tampilan ke data, dengan padding di sisi panel legenda (kiri di layar lebar,
-// bawah di ponsel) supaya datanya tidak tertutup panel.
+// Paskan tampilan ke data. Di ponsel diberi padding bawah selebar laci legenda supaya
+// datanya tidak tertutup; di layar lebar panel ada di samping peta, bukan di atasnya.
 function fitTo(target) {
     const data = target === "region" && state.data.reference
         ? features(state.data.reference, f => f.properties.kind.startsWith("ref-nperf"))
@@ -479,7 +480,7 @@ function fitTo(target) {
     const narrow = window.matchMedia("(max-width: 640px)").matches;
     const padding = narrow
         ? { top: 40, right: 24, bottom: Math.min(panel.height, window.innerHeight / 2) + 24, left: 24 }
-        : { top: 40, right: 40, bottom: 40, left: panel.right + 24 };
+        : 40;
     fitMap(MAP_ID, getBBox(data), padding);
 }
 
@@ -513,6 +514,28 @@ function bindUI() {
         const collapsed = panel.classList.toggle("collapsed");
         toggle.setAttribute("aria-expanded", String(!collapsed));
     });
+
+    // Layar lebar: panel samping diciutkan/diluaskan lewat tab di tepinya, seperti Google Maps.
+    const layout = panel.parentElement;
+    const edge = document.getElementById("panelEdge");
+    const wide = window.matchMedia("(min-width: 641px)");
+    const setSidePanel = hidden => {
+        layout.classList.toggle("panel-hidden", hidden);
+        const label = hidden ? "Expand side panel" : "Collapse side panel";
+        edge.title = label;
+        edge.setAttribute("aria-label", label);
+        edge.setAttribute("aria-expanded", String(!hidden));
+        panel.inert = hidden && wide.matches;
+    };
+    edge.addEventListener("click", () => {
+        const hidden = !layout.classList.contains("panel-hidden");
+        setSidePanel(hidden);
+        try { localStorage.setItem(PANEL_KEY, hidden ? "hidden" : "shown"); } catch { /* tidak disimpan */ }
+    });
+    wide.addEventListener("change", () => setSidePanel(layout.classList.contains("panel-hidden")));
+    let hidden = false;
+    try { hidden = localStorage.getItem(PANEL_KEY) === "hidden"; } catch { /* bawaan: terbuka */ }
+    setSidePanel(hidden);
 }
 
 function load(name, url) {

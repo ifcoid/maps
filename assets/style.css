@@ -36,26 +36,54 @@ body {
     font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-.layout { position: relative; height: 100dvh; }
-.map { position: absolute; inset: 0; }
+.layout { position: relative; height: 100dvh; overflow: hidden; --panel-width: 360px; }
 
-/* panel legenda: melayang di kiri atas pada layar lebar, menjadi laci bawah di ponsel */
+/* panel samping seperti Google Maps: di layar lebar menempel di kiri dan peta mulai di
+   kanannya, jadi kontrol peta tidak tertutup; tab di tepi panel menciutkan/meluaskannya.
+   Di ponsel panel menjadi laci bawah (lihat @media di bawah). */
+.map { position: absolute; inset: 0 0 0 var(--panel-width); transition: left 0.2s ease; }
 .panel {
     position: absolute;
     z-index: 10;
-    top: 12px;
-    left: 56px;
-    width: 340px;
-    max-height: calc(100% - 24px);
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--panel-width);
     display: flex;
     flex-direction: column;
     background: var(--surface);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    overflow: hidden;
+    border-right: 1px solid var(--line);
+    transition: transform 0.2s ease;
 }
+.panel-edge {
+    position: absolute;
+    z-index: 11;
+    top: 50%;
+    left: var(--panel-width);
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 48px;
+    margin-top: -24px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-left: 0;
+    border-radius: 0 8px 8px 0;
+    background: var(--surface);
+    color: var(--muted);
+    box-shadow: 2px 1px 6px rgba(15, 23, 42, 0.18);
+    cursor: pointer;
+    transition: left 0.2s ease;
+}
+.panel-edge:hover { color: var(--text); }
+.panel-edge:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.panel-edge svg { transition: transform 0.2s ease; }
+.layout.panel-hidden .map { left: 0; }
+.layout.panel-hidden .panel { transform: translateX(-100%); }
+.layout.panel-hidden .panel-edge { left: 0; }
+.layout.panel-hidden .panel-edge svg { transform: rotate(180deg); }
 .panel-toggle { display: none; }
-.panel-body { padding: 16px 18px 14px; overflow-y: auto; }
+.panel-body { flex: 1; min-height: 0; padding: 16px 18px 14px; overflow-y: auto; }
 
 .eyebrow { margin: 0; color: var(--muted); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
 h1 { margin: 4px 0 2px; font-size: 19px; line-height: 1.25; }
@@ -140,15 +168,21 @@ h1 { margin: 4px 0 2px; font-size: 19px; line-height: 1.25; }
 .pop .metric { font-weight: 650; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 640px) {
-    .panel {
+    .map, .layout.panel-hidden .map { left: 0; }
+    .panel, .layout.panel-hidden .panel {
         top: auto;
         left: 0;
         right: 0;
         bottom: 0;
         width: auto;
         max-height: 60%;
+        border-right: 0;
         border-radius: 14px 14px 0 0;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        transform: none;
     }
+    .panel-edge { display: none; }
     .panel-toggle {
         display: block;
         padding: 10px 16px;
