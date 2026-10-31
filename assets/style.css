@@ -236,7 +236,10 @@ body:not(.unlocked) .secure-only { display: none; }
 .crootjs-map-label.building-tag { padding: 0 4px; border-radius: 3px; background: #0f172a; color: #f8fafc;
                 border: 1px solid #f8fafc; text-shadow: none; font: 700 10px/1.4 system-ui, sans-serif; margin: -9px 0 0 22px; }
 .building-tag::before { content: "📷 "; font-size: 9px; }
-.pop:has(.devices) { min-width: min(340px, 80vw); }
+/* popup berisi tabel perangkat: balon croot.js (maks 260 px) dilebarkan supaya tabelnya
+   muat di dalam balon; isi = lebar balon dikurangi padding 42 px */
+.crootjs-map-popup:has(.devices) { max-width: min(380px, calc(100vw - 32px)); }
+.pop:has(.devices) { min-width: min(320px, calc(100vw - 74px)); }
 .crootjs-map-label.ref-tag { padding: 0 4px; border-radius: 3px; background: #fbbf24; color: #0f172a; text-shadow: none;
            font: 700 10px/1.4 system-ui, sans-serif; margin-top: -16px; }
 .pop a { color: #1d4ed8; font-weight: 600; }
